@@ -1728,10 +1728,16 @@ avatarInput.addEventListener("change", async () => {
       .from("avatars")
       .getPublicUrl(filePath);
 
-    const profile = readProfile();
-    profile.avatar = urlData.publicUrl;
-    saveProfile(profile);
-    renderProfile();
+    const { error: metadataError } = await supabase.auth.updateUser({
+  data: { avatar_url: urlData.publicUrl }
+});
+
+if (metadataError) throw metadataError;
+
+const profile = readProfile();
+profile.avatar = urlData.publicUrl;
+saveProfile(profile);
+renderProfile();
 
     showMessage(message, "Фотография загружена и сохранена!");
   } catch (error) {
@@ -1799,10 +1805,44 @@ $("#logoutButton").addEventListener("click", async () => {
   }
 });
 
+async function syncAvatarFromAccount() {
+  try {
+    const supabase = window.aiStudioSupabase;
+    if (!supabase) return;
+
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user) return;
+
+    const cloudAvatar = data.user.user_metadata?.avatar_url;
+
+    if (
+      typeof cloudAvatar !== "string" ||
+      !cloudAvatar.startsWith("https://")
+    ) {
+      return;
+    }
+
+    const profile = readProfile();
+
+    if (profile.avatar !== cloudAvatar) {
+      profile.avatar = cloudAvatar;
+      saveProfile(profile);
+      renderProfile();
+    }
+  } catch (error) {
+    console.error(
+      "Не удалось восстановить фотографию профиля:",
+      error
+    );
+  }
+}
+    
     // Начальная загрузка
     renderProfile();
     renderHistory();
 
+    window.addEventListener("load", syncAvatarFromAccount);
     // Если пользователь вернулся на широком экране, закрываем мобильное меню
     window.addEventListener("resize", () => {
       if (window.innerWidth > 680) closeMenu();
