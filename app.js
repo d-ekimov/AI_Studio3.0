@@ -154,8 +154,13 @@
   $("#feedbackButton").addEventListener("click",()=>openDialog("Твоя заметка","Запиши идею или недостающую функцию — пока заметка никуда не отправляется.","Сохранить локально",()=>{
     const text=$("#fieldNote")?.value.trim();if(!text){toast("Напиши заметку.");return false;}const notes=read("aistudio_notes",[]);notes.push({text,date:new Date().toLocaleString("ru-RU")});save("aistudio_notes",notes);toast("Заметка сохранена в этом браузере.");return true;
   },[{id:"fieldNote",label:"Что стоит улучшить?",placeholder:"Хочу добавить…",multiline:true}]));
-  $("#profileButton").addEventListener("click",()=>{
-  window.location.href="auth.html";
+  $("#profileButton").addEventListener("click", () => {
+  const registered =
+    localStorage.getItem("aiStudioRegistered") === "true";
+
+  window.location.href = registered
+    ? "profile.html"
+    : "auth.html";
 });
   document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();newChat();}});
   renderHistory();renderChat();renderProjects();renderTasks();
