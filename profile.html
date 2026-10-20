@@ -1863,39 +1863,49 @@ $("#logoutButton").addEventListener("click", async () => {
   }
 });
 
-async function syncAvatarFromAccount() {
-  try {
-    const supabase = window.aiStudioSupabase;
-    if (!supabase) return;
 
-    const { data, error } = await supabase.auth.getUser();
+    async function syncAvatarFromAccount() {
+      try {
+        const supabase = window.aiStudioSupabase;
+        if (!supabase) return;
 
-    if (error || !data.user) return;
+        const { data, error } = await supabase.auth.getUser();
 
-    const cloudAvatar = data.user.user_metadata?.avatar_url;
+        if (error || !data.user) return;
 
-    if (
-      typeof cloudAvatar !== "string" ||
-      !cloudAvatar.startsWith("https://")
-    ) {
-      return;
+        const metadata = data.user.user_metadata || {};
+        const profile = readProfile();
+
+        if (typeof metadata.full_name === "string") {
+          profile.name = metadata.full_name;
+        }
+
+        if (typeof metadata.profile_email === "string") {
+          profile.email = metadata.profile_email;
+        }
+
+        if (
+          typeof metadata.avatar_url === "string" &&
+          metadata.avatar_url.startsWith("https://")
+        ) {
+          profile.avatar = metadata.avatar_url;
+        }
+
+        saveProfile(profile);
+        renderProfile();
+
+        if (document.getElementById("page-about").classList.contains("active")) {
+          nameInput.value = profile.name;
+          emailInput.value = profile.email;
+        }
+      } catch (error) {
+        console.error(
+          "Не удалось восстановить данные профиля:",
+          error
+        );
+      }
     }
 
-    const profile = readProfile();
-
-    if (profile.avatar !== cloudAvatar) {
-      profile.avatar = cloudAvatar;
-      saveProfile(profile);
-      renderProfile();
-    }
-  } catch (error) {
-    console.error(
-      "Не удалось восстановить фотографию профиля:",
-      error
-    );
-  }
-}
-    
     // Начальная загрузка
     renderProfile();
     renderHistory();
