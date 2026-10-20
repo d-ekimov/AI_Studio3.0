@@ -5,7 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0c0d12">
   <title>Мой кабинет — AI Studio</title>
+<script>
+  // Демо-проверка входа.
+  // Для настоящей защиты нужна серверная авторизация.
+  (function () {
+    function checkDemoSession() {
+      try {
+        if (localStorage.getItem("aiStudioRegistered") !== "true") {
+          window.location.replace("auth.html");
+        }
+      } catch (error) {
+        window.location.replace("auth.html");
+      }
+    }
 
+    checkDemoSession();
+    window.addEventListener("pageshow", checkDemoSession);
+  })();
+</script>
   <style>
     :root {
       --bg: #0c0d12;
@@ -1726,9 +1743,14 @@
       });
     });
 
-    // Переход ко входу — без удаления данных профиля
-    $("#logoutButton").addEventListener("click", () => {
-      window.location.href = "auth.html";
+    // Выход из демосессии без удаления профиля
+$("#logoutButton").addEventListener("click", () => {
+  try {
+    localStorage.removeItem("aiStudioRegistered");
+  } finally {
+    window.location.replace("auth.html");
+  }
+});
     });
 
     // Начальная загрузка
