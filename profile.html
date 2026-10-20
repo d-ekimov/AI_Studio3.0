@@ -1618,8 +1618,8 @@
       if (event.key === "Escape") closeMenu();
     });
 
-    // Сохранение профиля
-    form.addEventListener("submit", (event) => {
+    // Сохранение профиля в аккаунт Supabase
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const name = nameInput.value.trim();
@@ -1635,7 +1635,37 @@
         return;
       }
 
+      const supabase = window.aiStudioSupabase;
+
+      if (!supabase) {
+        showMessage(
+          $("#profileMessage"),
+          "Подключение к Supabase ещё не готово. Обнови страницу.",
+          true
+        );
+        return;
+      }
+
       try {
+        showMessage($("#profileMessage"), "Сохраняю данные в аккаунт...");
+
+        const { data, error: userError } = await supabase.auth.getUser();
+
+        if (userError) throw userError;
+
+        if (!data.user) {
+          throw new Error("Войди в аккаунт и попробуй снова.");
+        }
+
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            full_name: name,
+            profile_email: email
+          }
+        });
+
+        if (error) throw error;
+
         const oldProfile = readProfile();
 
         saveProfile({
@@ -1646,11 +1676,16 @@
 
         renderProfile();
 
-        showMessage($("#profileMessage"), "Изменения сохранены на этом устройстве.");
-      } catch (error) {
         showMessage(
           $("#profileMessage"),
-          "Не удалось сохранить данные. Возможно, хранилище браузера заполнено.",
+          "Имя и почта сохранены в аккаунте!"
+        );
+      } catch (error) {
+        console.error("Ошибка сохранения профиля:", error);
+
+        showMessage(
+          $("#profileMessage"),
+          error.message || "Не удалось сохранить данные в аккаунт.",
           true
         );
       }
