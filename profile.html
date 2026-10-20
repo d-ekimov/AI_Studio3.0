@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0c0d12">
-  <title>Мой профиль — AI Studio</title>
+  <title>Мой кабинет — AI Studio</title>
 
   <style>
     :root {
@@ -17,6 +17,7 @@
       --accent: #a78bfa;
       --accent-dark: #8b5cf6;
       --green: #6ee7b7;
+      --red: #fca5a5;
     }
 
     * {
@@ -32,106 +33,306 @@
         var(--bg);
       color: var(--text);
       font-family: "Segoe UI", Arial, sans-serif;
-      padding: 24px 16px 40px;
     }
 
     button, input {
       font: inherit;
     }
 
+    button, a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
     button {
       cursor: pointer;
     }
 
-    .container {
-      width: 100%;
-      max-width: 760px;
-      margin: 0 auto;
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
-    .topbar {
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 100;
+      width: 260px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 30px;
+      flex-direction: column;
+      padding: 25px 16px 18px;
+      background: #101118;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 11px;
+      padding: 0 9px;
+      margin-bottom: 36px;
       font-size: 19px;
       font-weight: 800;
-      letter-spacing: -0.5px;
+      letter-spacing: -.5px;
     }
 
     .brand-icon {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       display: grid;
       place-items: center;
-      border-radius: 12px;
+      border-radius: 13px;
       background: linear-gradient(135deg, #a78bfa, #6d42dc);
       color: white;
-      font-size: 20px;
+      font-size: 22px;
     }
 
-    .back-button {
-      padding: 10px 14px;
-      border: 1px solid var(--border);
+    .nav-label {
+      padding: 0 12px;
+      margin-bottom: 12px;
+      color: #77778e;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      min-height: 47px;
+      padding: 12px 13px;
+      border: 1px solid transparent;
       border-radius: 12px;
-      color: var(--text);
-      background: var(--panel);
-      text-decoration: none;
+      background: transparent;
+      color: #aaa9bf;
+      text-align: left;
       font-size: 13px;
+      transition: .2s;
     }
 
-    .back-button:hover {
-      border-color: var(--accent);
+    .nav-button:hover {
+      background: var(--panel-light);
+      color: var(--text);
+    }
+
+    .nav-button.active {
+      color: white;
+      background: linear-gradient(100deg, #392758, #241b37);
+      border-color: #49366d;
+    }
+
+    .nav-icon {
+      width: 23px;
+      text-align: center;
+      font-size: 17px;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding-top: 25px;
+    }
+
+    .sidebar-profile {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 13px 10px;
+      border-top: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+
+    .mini-avatar {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #a78bfa, #6541cb);
+      font-weight: 800;
+    }
+
+    .mini-avatar img,
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .sidebar-user {
+      min-width: 0;
+    }
+
+    .sidebar-user strong,
+    .sidebar-user span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sidebar-user strong {
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .sidebar-user span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .main {
+      min-height: 100vh;
+      margin-left: 260px;
+      padding: 34px clamp(20px, 4vw, 55px) 40px;
+    }
+
+    .mobile-header {
+      display: none;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    .page {
+      display: none;
+      animation: appear .2s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .heading {
-      margin-bottom: 22px;
+      margin-bottom: 27px;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
     }
 
     .heading h1 {
-      font-size: clamp(27px, 6vw, 35px);
+      margin-bottom: 9px;
+      font-size: clamp(26px, 4vw, 35px);
       letter-spacing: -1px;
-      margin-bottom: 8px;
+      overflow-wrap: anywhere;
     }
 
     .heading p {
       color: var(--muted);
-      line-height: 1.6;
       font-size: 14px;
+      line-height: 1.7;
     }
 
     .card {
-      background: linear-gradient(145deg, #181923, #12131b);
-      border: 1px solid var(--border);
-      border-radius: 20px;
+      min-width: 0;
       padding: 24px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      background: linear-gradient(145deg, #181923, #12131b);
+    }
+
+    .card-title {
+      margin-bottom: 8px;
+      font-size: 17px;
+    }
+
+    .card-description {
+      margin-bottom: 21px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr);
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .welcome-card {
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 100% 0%, #55358b66, transparent 55%),
+        linear-gradient(145deg, #201a31, #15151f);
+    }
+
+    .welcome-card::after {
+      content: "✦";
+      position: absolute;
+      right: 17px;
+      bottom: -50px;
+      color: #b8a0ff0b;
+      font-size: 210px;
+      pointer-events: none;
     }
 
     .profile-header {
+      position: relative;
+      z-index: 1;
       display: flex;
       align-items: center;
-      gap: 18px;
-      margin-bottom: 24px;
+      gap: 17px;
+      width: 100%;
+      margin-bottom: 20px;
     }
 
     .avatar {
-      width: 76px;
-      height: 76px;
+      width: 75px;
+      height: 75px;
       flex-shrink: 0;
       display: grid;
       place-items: center;
+      overflow: hidden;
+      border: 2px solid #ffffff18;
       border-radius: 23px;
       background: linear-gradient(135deg, #a78bfa, #6541cb);
       color: white;
-      font-size: 30px;
+      font-size: 29px;
       font-weight: 800;
       box-shadow: 0 8px 28px #8b5cf633;
     }
@@ -141,24 +342,24 @@
     }
 
     .profile-info h2 {
+      margin-bottom: 7px;
       font-size: 21px;
       overflow-wrap: anywhere;
-      margin-bottom: 7px;
     }
 
     .profile-info p {
-      color: var(--muted);
-      font-size: 13px;
+      color: #b6b2ca;
+      font-size: 12px;
       overflow-wrap: anywhere;
     }
 
     .status {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 7px;
+      margin-top: 11px;
       color: var(--green);
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .status-dot {
@@ -168,16 +369,147 @@
       background: var(--green);
     }
 
-    .section-title {
-      font-size: 17px;
-      margin-bottom: 7px;
+    .balance-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 220px;
+      background:
+        radial-gradient(ellipse at 100% 0%, #6e49b344, transparent 60%),
+        linear-gradient(145deg, #1c1930, #15151f);
     }
 
-    .section-description {
+    .balance-label {
+      color: #b8b0d0;
+      font-size: 12px;
+    }
+
+    .balance-number {
+      margin: 15px 0 8px;
+      font-size: clamp(31px, 4vw, 42px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      overflow-wrap: anywhere;
+    }
+
+    .balance-number span {
+      color: var(--accent);
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .demo-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      padding: 6px 9px;
+      border: 1px solid #49366d;
+      border-radius: 8px;
+      background: #29213b;
+      color: #d1bfff;
+      font-size: 10px;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .danger-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 43px;
+      padding: 11px 16px;
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 700;
+      transition: .2s;
+    }
+
+    .primary-button {
+      border: 0;
+      background: linear-gradient(135deg, #9b7af5, #7547e6);
+      color: white;
+    }
+
+    .primary-button:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+
+    .secondary-button {
+      border: 1px solid var(--border);
+      background: var(--panel-light);
+      color: var(--text);
+    }
+
+    .secondary-button:hover {
+      border-color: var(--accent);
+    }
+
+    .danger-button {
+      border: 1px solid #51232e;
+      background: #2a171d;
+      color: var(--red);
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .quick-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 140px;
+      padding: 19px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #15161f;
+      color: var(--text);
+      text-align: left;
+      transition: .2s;
+    }
+
+    .quick-card:hover {
+      border-color: #6f4da7;
+      background: #1b1928;
+      transform: translateY(-2px);
+    }
+
+    .quick-icon {
+      margin-bottom: 15px;
+      font-size: 23px;
+    }
+
+    .quick-card strong {
+      margin-bottom: 6px;
       font-size: 13px;
+    }
+
+    .quick-card span:last-child {
       color: var(--muted);
+      font-size: 11px;
       line-height: 1.5;
-      margin-bottom: 22px;
+    }
+
+    .notice {
+      padding: 15px 16px;
+      margin-bottom: 20px;
+      border: 1px solid #49366d;
+      border-radius: 13px;
+      background: #211832;
+      color: #d8c9ff;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 4px;
     }
 
     .field {
@@ -187,20 +519,21 @@
     .field label {
       display: block;
       margin-bottom: 9px;
-      font-size: 13px;
       color: #d5d1e6;
+      font-size: 12px;
     }
 
     .field input {
       width: 100%;
       min-width: 0;
-      padding: 14px 15px;
+      min-height: 45px;
+      padding: 12px 14px;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 11px;
       outline: none;
-      color: var(--text);
       background: #0e0f16;
-      transition: border-color 0.2s;
+      color: var(--text);
+      transition: border-color .2s;
     }
 
     .field input:focus {
@@ -211,80 +544,57 @@
       color: #66667a;
     }
 
-    .field input:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-    }
-
     .hint {
       margin-top: 8px;
-      font-size: 12px;
       color: var(--muted);
-      line-height: 1.5;
+      font-size: 11px;
+      line-height: 1.6;
     }
 
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 22px;
+      margin-top: 23px;
     }
 
-    .primary-button,
-    .secondary-button,
-    .danger-button {
-      min-height: 44px;
-      padding: 12px 17px;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 13px;
-      transition: 0.2s;
+    .message {
+      display: none;
+      padding: 12px 14px;
+      margin-top: 16px;
+      border: 1px solid #285543;
+      border-radius: 10px;
+      background: #12251e;
+      color: var(--green);
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
     }
 
-    .primary-button {
-      color: white;
-      border: 0;
-      background: linear-gradient(135deg, #9b7af5, #7547e6);
-    }
-
-    .primary-button:hover {
-      filter: brightness(1.12);
-    }
-
-    .secondary-button {
-      color: var(--text);
-      background: var(--panel-light);
-      border: 1px solid var(--border);
-    }
-
-    .danger-button {
-      color: #fca5a5;
+    .message.error {
+      border-color: #65313b;
       background: #2a171d;
-      border: 1px solid #51232e;
+      color: var(--red);
     }
 
-    .notice {
-      padding: 15px;
-      border-radius: 13px;
-      border: 1px solid #49366d;
-      background: #211832;
-      color: #d8c9ff;
-      font-size: 13px;
-      line-height: 1.65;
-      margin-bottom: 18px;
+    .avatar-editor {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 25px;
     }
 
-    .notice strong {
-      display: block;
-      margin-bottom: 4px;
+    .avatar-editor .avatar {
+      width: 86px;
+      height: 86px;
     }
 
     .settings-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      padding: 15px 0;
+      gap: 15px;
+      padding: 17px 0;
       border-bottom: 1px solid var(--border);
     }
 
@@ -294,70 +604,228 @@
 
     .settings-row strong {
       display: block;
-      font-size: 14px;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
+      font-size: 13px;
     }
 
     .settings-row p {
       color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
+      font-size: 11px;
+      line-height: 1.6;
     }
 
     .badge {
-      white-space: nowrap;
+      flex-shrink: 0;
       padding: 6px 9px;
       border-radius: 8px;
       background: #29213b;
       color: var(--accent);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .plan-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 0;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #15161f;
+    }
+
+    .plan-card.featured {
+      border-color: #7655b3;
+      background:
+        radial-gradient(ellipse at top right, #68429c30, transparent 65%),
+        #191622;
+    }
+
+    .plan-card h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .plan-price {
+      margin-bottom: 5px;
+      font-size: 25px;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .plan-caption {
+      margin-bottom: 18px;
+      color: var(--muted);
       font-size: 11px;
     }
 
-    .footer {
-      text-align: center;
-      padding: 20px 0 0;
-      color: #656579;
+    .plan-card ul {
+      flex: 1;
+      padding-left: 17px;
+      margin-bottom: 22px;
+      color: #c6c2d7;
+      font-size: 11px;
+      line-height: 2;
+    }
+
+    .plan-card button {
+      width: 100%;
+    }
+
+    .history-empty {
+      padding: 20px 0 5px;
+      color: var(--muted);
       font-size: 12px;
+      line-height: 1.7;
     }
 
-    .message {
+    .footer {
+      padding: 24px 0 0;
+      color: #656579;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    .overlay {
       display: none;
-      margin-top: 16px;
-      padding: 12px 14px;
-      border: 1px solid #285543;
-      border-radius: 10px;
-      background: #12251e;
-      color: var(--green);
-      font-size: 13px;
-      line-height: 1.5;
     }
 
-    @media (max-width: 480px) {
-      body {
-        padding: 16px 12px 30px;
+    @media (max-width: 900px) {
+      .sidebar {
+        width: 240px;
       }
 
-      .topbar {
-        margin-bottom: 26px;
+      .main {
+        margin-left: 240px;
+        padding: 28px 22px 35px;
       }
 
-      .brand {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .welcome-card,
+      .balance-card {
+        min-height: 190px;
+      }
+
+      .plans-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-card {
+        min-height: 240px;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .sidebar {
+        width: min(290px, 85vw);
+        padding-top: 22px;
+        transform: translateX(-105%);
+        transition: transform .25s ease;
+        box-shadow: none;
+      }
+
+      body.menu-open .sidebar {
+        transform: translateX(0);
+        box-shadow: 20px 0 60px #0008;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: block;
+        background: #0009;
+        opacity: 0;
+        visibility: hidden;
+        transition: .25s;
+      }
+
+      body.menu-open .overlay {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      body.menu-open {
+        overflow: hidden;
+      }
+
+      .main {
+        margin-left: 0;
+        padding: 15px 14px 30px;
+      }
+
+      .mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 30px;
+      }
+
+      .mobile-brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
         font-size: 16px;
+        font-weight: 800;
       }
 
-      .brand-icon {
+      .mobile-brand .brand-icon {
         width: 34px;
         height: 34px;
+        border-radius: 11px;
+        font-size: 18px;
       }
 
-      .back-button {
-        padding: 9px 10px;
-        font-size: 12px;
+      .menu-toggle {
+        width: 43px;
+        height: 43px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--panel);
+        color: white;
+        font-size: 22px;
+      }
+
+      .heading {
+        margin-bottom: 21px;
+      }
+
+      .heading h1 {
+        font-size: 28px;
       }
 
       .card {
-        padding: 18px 15px;
+        padding: 19px 16px;
         border-radius: 16px;
+      }
+
+      .overview-grid {
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .welcome-card,
+      .balance-card {
+        min-height: 180px;
+      }
+
+      .profile-header {
+        gap: 13px;
       }
 
       .avatar {
@@ -367,244 +835,911 @@
         font-size: 25px;
       }
 
-      .profile-header {
-        gap: 13px;
-      }
-
       .profile-info h2 {
         font-size: 18px;
       }
 
-      .actions > button {
-        flex: 1 1 100%;
+      .quick-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .quick-card {
+        min-height: 105px;
+        padding: 16px;
+      }
+
+      .quick-icon {
+        margin-bottom: 10px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .actions button,
+      .actions a {
+        width: 100%;
       }
 
       .settings-row {
         align-items: flex-start;
+      }
+
+      .avatar-editor {
+        align-items: flex-start;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
       }
     }
   </style>
 </head>
 
 <body>
-  <main class="container">
 
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon">✦</div>
+  <div class="overlay" id="overlay" aria-hidden="true"></div>
+
+  <aside class="sidebar" id="sidebar" aria-label="Меню кабинета">
+    <a class="brand" href="index.html">
+      <span class="brand-icon">✦</span>
+      <span>AI Studio</span>
+    </a>
+
+    <div class="nav-label">Личный кабинет</div>
+
+    <nav class="nav">
+      <button class="nav-button active" type="button" data-page="overview">
+        <span class="nav-icon">⌂</span>
+        Обзор
+      </button>
+
+      <button class="nav-button" type="button" data-page="balance">
+        <span class="nav-icon">◈</span>
+        Пополнить баланс
+      </button>
+
+      <button class="nav-button" type="button" data-page="security">
+        <span class="nav-icon">♙</span>
+        Безопасность
+      </button>
+
+      <button class="nav-button" type="button" data-page="plans">
+        <span class="nav-icon">✧</span>
+        Тарифы и подписки
+      </button>
+
+      <button class="nav-button" type="button" data-page="about">
+        <span class="nav-icon">◎</span>
+        О себе
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-profile">
+        <div class="mini-avatar" id="sidebarAvatar">U</div>
+        <div class="sidebar-user">
+          <strong id="sidebarName">Пользователь</strong>
+          <span id="sidebarEmail">Мой аккаунт</span>
+        </div>
+      </div>
+
+      <a class="nav-button" href="index.html">
+        <span class="nav-icon">←</span>
+        Вернуться на главную
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="mobile-header">
+      <div class="mobile-brand">
+        <span class="brand-icon">✦</span>
         <span>AI Studio</span>
       </div>
 
-      <a class="back-button" href="index.html">← На главную</a>
-    </header>
+      <button
+        class="menu-toggle"
+        id="menuToggle"
+        type="button"
+        aria-label="Открыть меню"
+        aria-expanded="false"
+        aria-controls="sidebar"
+      >☰</button>
+    </div>
 
-    <section class="heading">
-      <h1>Мой профиль</h1>
-      <p>Управляй своим аккаунтом и персональными настройками.</p>
-    </section>
+    <div class="content">
 
-    <section class="card">
-      <div class="profile-header">
-        <div class="avatar" id="avatar">U</div>
+      <!-- ОБЗОР -->
+      <section class="page active" id="page-overview">
+        <header class="heading">
+          <div class="eyebrow">Твоё пространство</div>
+          <h1>Мой кабинет</h1>
+          <p>Всё необходимое для работы с AI Studio — в одном месте.</p>
+        </header>
 
-        <div class="profile-info">
-          <h2 id="displayName">Новый пользователь</h2>
-          <p id="displayEmail">Электронная почта не указана</p>
-          <div class="status">
-            <span class="status-dot"></span>
-            Личный кабинет
+        <div class="overview-grid">
+          <section class="card welcome-card">
+            <div class="profile-header">
+              <div class="avatar" id="overviewAvatar">U</div>
+              <div class="profile-info">
+                <h2 id="overviewName">Новый пользователь</h2>
+                <p id="overviewEmail">Электронная почта не указана</p>
+                <div class="status">
+                  <span class="status-dot"></span>
+                  Личный кабинет
+                </div>
+              </div>
+            </div>
+
+            <button class="secondary-button" type="button" data-go="about">
+              Редактировать профиль ↗
+            </button>
+          </section>
+
+          <section class="card balance-card">
+            <div>
+              <div class="balance-label">Твой баланс</div>
+              <div class="balance-number">
+                <span id="overviewBalance">1 000</span>
+                <span>токенов</span>
+              </div>
+              <div class="demo-label">● Демонстрационный баланс</div>
+            </div>
+
+            <button class="primary-button" type="button" data-go="balance">
+              + Пополнить баланс
+            </button>
+          </section>
+        </div>
+
+        <div class="quick-grid">
+          <button class="quick-card" type="button" data-go="balance">
+            <span class="quick-icon">◈</span>
+            <strong>Баланс и токены</strong>
+            <span>Посмотреть баланс и тестовые операции</span>
+          </button>
+
+          <button class="quick-card" type="button" data-go="security">
+            <span class="quick-icon">♙</span>
+            <strong>Безопасность</strong>
+            <span>Информация о защите аккаунта</span>
+          </button>
+
+          <button class="quick-card" type="button" data-go="plans">
+            <span class="quick-icon">✧</span>
+            <strong>Мой тариф</strong>
+            <span>Посмотреть доступные варианты</span>
+          </button>
+        </div>
+
+        <div class="notice">
+          <strong>Добро пожаловать в AI Studio!</strong>
+          Кабинет работает в демонстрационном режиме. Баланс, тарифы и
+          пополнение пока не связаны с реальными платежами или расходами
+          на AI-модели.
+        </div>
+      </section>
+
+      <!-- БАЛАНС -->
+      <section class="page" id="page-balance">
+        <header class="heading">
+          <div class="eyebrow">Токены</div>
+          <h1>Пополнить баланс</h1>
+          <p>Управляй тестовым балансом для будущих AI-функций.</p>
+        </header>
+
+        <section class="card">
+          <div class="balance-label">Доступно на балансе</div>
+          <div class="balance-number">
+            <span id="balanceAmount">1 000</span>
+            <span>токенов</span>
           </div>
-        </div>
-      </div>
 
-      <div class="notice">
-        <strong>Добро пожаловать в AI Studio!</strong>
-        Сейчас профиль работает в демонстрационном режиме.
-        Настоящая регистрация и вход будут подключены позже.
-      </div>
-    </section>
+          <div class="demo-label">Демо-режим · Реальных платежей нет</div>
 
-    <section class="card">
-      <h2 class="section-title">Личные данные</h2>
-      <p class="section-description">
-        Укажи имя и электронную почту для отображения в интерфейсе.
-      </p>
-
-      <form id="profileForm">
-        <div class="field">
-          <label for="name">Твоё имя</label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            placeholder="Например, Алексей"
-            maxlength="50"
-            autocomplete="name"
-            required
-          >
-        </div>
-
-        <div class="field">
-          <label for="email">Электронная почта</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="example@mail.com"
-            maxlength="254"
-            autocomplete="email"
-          >
-          <p class="hint">
-            Пока это только данные для отображения — подтверждение почты не подключено.
+          <p class="card-description" style="margin-top: 20px; margin-bottom: 0;">
+            Выбери количество тестовых токенов. Они добавятся только в
+            локальное хранилище этого браузера и пока не дают реального
+            доступа к платным AI-сервисам.
           </p>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Выбери пакет</h2>
+          <p class="card-description">
+            Это демонстрационные пакеты, а не реальные покупки.
+          </p>
+
+          <div class="plans-grid">
+            <article class="plan-card">
+              <h3>Старт</h3>
+              <div class="plan-price">+500</div>
+              <div class="plan-caption">тестовых токенов</div>
+              <ul>
+                <li>Демо-пополнение</li>
+                <li>Без оплаты</li>
+              </ul>
+              <button class="primary-button" type="button" data-add-tokens="500">
+                Добавить
+              </button>
+            </article>
+
+            <article class="plan-card featured">
+              <h3>Стандарт</h3>
+              <div class="plan-price">+1 500</div>
+              <div class="plan-caption">тестовых токенов</div>
+              <ul>
+                <li>Демо-пополнение</li>
+                <li>Без оплаты</li>
+              </ul>
+              <button class="primary-button" type="button" data-add-tokens="1500">
+                Добавить
+              </button>
+            </article>
+
+            <article class="plan-card">
+              <h3>Максимум</h3>
+              <div class="plan-price">+5 000</div>
+              <div class="plan-caption">тестовых токенов</div>
+              <ul>
+                <li>Демо-пополнение</li>
+                <li>Без оплаты</li>
+              </ul>
+              <button class="primary-button" type="button" data-add-tokens="5000">
+                Добавить
+              </button>
+            </article>
+          </div>
+
+          <div class="message" id="balanceMessage" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Последняя операция</h2>
+          <p class="card-description">История демонстрационных пополнений.</p>
+          <div id="balanceHistory" class="history-empty">
+            Пока операций нет.
+          </div>
+        </section>
+      </section>
+
+      <!-- БЕЗОПАСНОСТЬ -->
+      <section class="page" id="page-security">
+        <header class="heading">
+          <div class="eyebrow">Защита аккаунта</div>
+          <h1>Безопасность</h1>
+          <p>Настройки доступа и защита твоего профиля.</p>
+        </header>
+
+        <div class="notice">
+          <strong>Авторизация пока демонстрационная</strong>
+          Сейчас профиль хранится в браузере. Для настоящей защиты нужны
+          серверная авторизация или подключённый сервис аккаунтов.
+          Не используй демонстрационный вход для защиты конфиденциальных данных.
         </div>
 
-        <div class="actions">
-          <button class="primary-button" type="submit">
-            Сохранить изменения
+        <section class="card">
+          <h2 class="card-title">Твой аккаунт</h2>
+          <p class="card-description">
+            Текущие возможности и статус безопасности.
+          </p>
+
+          <div class="settings-row">
+            <div>
+              <strong>Данные профиля</strong>
+              <p>Имя и email сохранены в браузере этого устройства.</p>
+            </div>
+            <span class="badge">Локально</span>
+          </div>
+
+          <div class="settings-row">
+            <div>
+              <strong>Смена пароля</strong>
+              <p>Станет доступна после подключения настоящей авторизации.</p>
+            </div>
+            <span class="badge">Позже</span>
+          </div>
+
+          <div class="settings-row">
+            <div>
+              <strong>Подтверждение email</strong>
+              <p>Отправка писем и подтверждение адреса пока не подключены.</p>
+            </div>
+            <span class="badge">Позже</span>
+          </div>
+
+          <div class="settings-row">
+            <div>
+              <strong>Двухфакторная защита</strong>
+              <p>Потребуется серверная система аккаунтов.</p>
+            </div>
+            <span class="badge">Позже</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Завершить сеанс</h2>
+          <p class="card-description">
+            Вернись на страницу входа. Это не удаляет сохранённые данные профиля.
+          </p>
+          <button class="danger-button" id="logoutButton" type="button">
+            Вернуться ко входу
           </button>
+        </section>
+      </section>
 
-          <button class="secondary-button" type="button" id="resetButton">
-            Сбросить
-          </button>
+      <!-- ТАРИФЫ -->
+      <section class="page" id="page-plans">
+        <header class="heading">
+          <div class="eyebrow">Возможности AI Studio</div>
+          <h1>Тарифы и подписки</h1>
+          <p>Макет будущих тарифных планов сервиса.</p>
+        </header>
+
+        <div class="notice">
+          <strong>Тарифы пока не подключены</strong>
+          Выбор тарифа здесь не оформляет подписку и не списывает деньги.
+          Цены и лимиты ниже — демонстрационный пример, который можно
+          изменить перед запуском настоящей системы оплаты.
         </div>
 
-        <div class="message" id="message" role="status" aria-live="polite"></div>
-      </form>
-    </section>
+        <div class="plans-grid">
+          <article class="plan-card">
+            <h3>Free</h3>
+            <div class="plan-price">0 ₽</div>
+            <div class="plan-caption">для знакомства с сервисом</div>
+            <ul>
+              <li>Базовые возможности</li>
+              <li>Ограниченный доступ</li>
+              <li>Без подписки</li>
+            </ul>
+            <button class="secondary-button" type="button" data-plan="Free">
+              Текущий демо-тариф
+            </button>
+          </article>
 
-    <section class="card">
-      <h2 class="section-title">Настройки аккаунта</h2>
-      <p class="section-description">
-        Дополнительные возможности, которые подготовим для будущей версии.
-      </p>
+          <article class="plan-card featured">
+            <h3>Plus</h3>
+            <div class="plan-price">— ₽</div>
+            <div class="plan-caption">цена будет определена позже</div>
+            <ul>
+              <li>Расширенные возможности</li>
+              <li>Увеличенные лимиты</li>
+              <li>Требует подключения оплаты</li>
+            </ul>
+            <button class="primary-button" type="button" data-plan="Plus">
+              Посмотреть статус
+            </button>
+          </article>
 
-      <div class="settings-row">
-        <div>
-          <strong>Безопасность</strong>
-          <p>Защита аккаунта и смена пароля.</p>
+          <article class="plan-card">
+            <h3>Pro</h3>
+            <div class="plan-price">— ₽</div>
+            <div class="plan-caption">цена будет определена позже</div>
+            <ul>
+              <li>Максимальные возможности</li>
+              <li>Расширенные лимиты</li>
+              <li>Требует подключения оплаты</li>
+            </ul>
+            <button class="secondary-button" type="button" data-plan="Pro">
+              Посмотреть статус
+            </button>
+          </article>
         </div>
-        <span class="badge">Позже</span>
-      </div>
 
-      <div class="settings-row">
-        <div>
-          <strong>Подключённые AI-модели</strong>
-          <p>Управление доступом к AI-сервисам.</p>
-        </div>
-        <span class="badge">Позже</span>
-      </div>
+        <div class="message" id="planMessage" role="status" aria-live="polite"></div>
+      </section>
 
-      <div class="settings-row">
-        <div>
-          <strong>Подписка и лимиты</strong>
-          <p>Тарифы, использование и ограничения.</p>
-        </div>
-        <span class="badge">Позже</span>
-      </div>
-    </section>
+      <!-- О СЕБЕ -->
+      <section class="page" id="page-about">
+        <header class="heading">
+          <div class="eyebrow">Персонализация</div>
+          <h1>О себе</h1>
+          <p>Настрой имя, электронную почту и фотографию профиля.</p>
+        </header>
 
-    <section class="card">
-      <h2 class="section-title">Сеанс</h2>
-      <p class="section-description">
-        Настоящая авторизация пока не подключена.
-      </p>
+        <section class="card">
+          <h2 class="card-title">Фотография профиля</h2>
+          <p class="card-description">
+            Выбери изображение с устройства. Оно будет сохранено в этом браузере.
+          </p>
 
-      <button class="danger-button" id="logoutButton" type="button">
-        Вернуться ко входу
-      </button>
-    </section>
+          <div class="avatar-editor">
+            <div class="avatar" id="editAvatar">U</div>
+            <div>
+              <label class="primary-button" for="avatarInput">
+                Выбрать фотографию
+              </label>
+              <input
+                id="avatarInput"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                hidden
+              >
+              <p class="hint">Рекомендуется небольшое изображение до 1,5 МБ.</p>
+              <button
+                class="secondary-button"
+                id="removeAvatar"
+                type="button"
+                style="margin-top: 10px;"
+              >Удалить фотографию</button>
+            </div>
+          </div>
 
-    <footer class="footer">
-      AI Studio 3.0 · Личный кабинет
-    </footer>
+          <div class="message" id="avatarMessage" role="status" aria-live="polite"></div>
+        </section>
 
+        <section class="card">
+          <h2 class="card-title">Личные данные</h2>
+          <p class="card-description">
+            Эти данные используются для отображения в твоём кабинете.
+          </p>
+
+          <form id="profileForm">
+            <div class="field">
+              <label for="name">Твоё имя</label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Например, Алексей"
+                maxlength="50"
+                autocomplete="name"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="email">Электронная почта</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="example@mail.com"
+                maxlength="254"
+                autocomplete="email"
+              >
+              <p class="hint">
+                Email пока не подтверждается на сервере.
+              </p>
+            </div>
+
+            <div class="actions">
+              <button class="primary-button" type="submit">
+                Сохранить изменения
+              </button>
+              <button class="secondary-button" id="resetButton" type="button">
+                Сбросить поля
+              </button>
+            </div>
+
+            <div class="message" id="profileMessage" role="status" aria-live="polite"></div>
+          </form>
+        </section>
+      </section>
+
+      <footer class="footer">
+        AI Studio 3.0 · Личный кабинет<br>
+        Демонстрационная версия
+      </footer>
+
+    </div>
   </main>
 
   <script>
-    const form = document.getElementById("profileForm");
-    const nameInput = document.getElementById("name");
-    const emailInput = document.getElementById("email");
-    const displayName = document.getElementById("displayName");
-    const displayEmail = document.getElementById("displayEmail");
-    const avatar = document.getElementById("avatar");
-    const message = document.getElementById("message");
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => document.querySelectorAll(selector);
 
-    const defaultProfile = {
-      name: "",
-      email: ""
-    };
+    const form = $("#profileForm");
+    const nameInput = $("#name");
+    const emailInput = $("#email");
+    const avatarInput = $("#avatarInput");
 
-    function loadProfile() {
+    const DEFAULT_TOKENS = 1000;
+    const MAX_AVATAR_SIZE = 1.5 * 1024 * 1024;
+
+    let currentPage = "overview";
+
+    function readProfile() {
       try {
         const saved = localStorage.getItem("aiStudioProfile");
-        const profile = saved ? JSON.parse(saved) : defaultProfile;
+        const profile = saved ? JSON.parse(saved) : {};
 
-        nameInput.value =
-          typeof profile.name === "string" ? profile.name : "";
+        if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+          return { name: "", email: "", avatar: "" };
+        }
 
-        emailInput.value =
-          typeof profile.email === "string" ? profile.email : "";
+        return {
+          name: typeof profile.name === "string" ? profile.name : "",
+          email: typeof profile.email === "string" ? profile.email : "",
+          avatar: typeof profile.avatar === "string" ? profile.avatar : ""
+        };
       } catch (error) {
-        nameInput.value = "";
-        emailInput.value = "";
+        return { name: "", email: "", avatar: "" };
       }
-
-      updatePreview();
     }
 
-    function updatePreview() {
+    function saveProfile(profile) {
+      localStorage.setItem("aiStudioProfile", JSON.stringify(profile));
+    }
+
+    function getTokens() {
+      try {
+        const stored = localStorage.getItem("aiStudioDemoTokens");
+
+        if (stored === null) {
+          localStorage.setItem("aiStudioDemoTokens", String(DEFAULT_TOKENS));
+          return DEFAULT_TOKENS;
+        }
+
+        const value = Number(stored);
+
+        if (!Number.isSafeInteger(value) || value < 0) {
+          return DEFAULT_TOKENS;
+        }
+
+        return value;
+      } catch (error) {
+        return DEFAULT_TOKENS;
+      }
+    }
+
+    function formatNumber(value) {
+      return value.toLocaleString("ru-RU");
+    }
+
+    function renderAvatar(element, profile) {
+      element.replaceChildren();
+
+      if (profile.avatar && profile.avatar.startsWith("data:image/")) {
+        const img = document.createElement("img");
+        img.src = profile.avatar;
+        img.alt = "Фотография профиля";
+        element.appendChild(img);
+      } else {
+        const name = profile.name.trim();
+        element.textContent = name ? name.charAt(0).toLocaleUpperCase("ru-RU") : "U";
+      }
+    }
+
+    function renderProfile() {
+      const profile = readProfile();
+      const name = profile.name.trim() || "Новый пользователь";
+      const email = profile.email.trim() || "Электронная почта не указана";
+
+      $("#overviewName").textContent = name;
+      $("#overviewEmail").textContent = email;
+      $("#sidebarName").textContent = profile.name.trim() || "Пользователь";
+      $("#sidebarEmail").textContent = profile.email.trim() || "Мой аккаунт";
+
+      renderAvatar($("#overviewAvatar"), profile);
+      renderAvatar($("#editAvatar"), profile);
+      renderAvatar($("#sidebarAvatar"), profile);
+
+      const tokens = getTokens();
+      $("#overviewBalance").textContent = formatNumber(tokens);
+      $("#balanceAmount").textContent = formatNumber(tokens);
+    }
+
+    function showMessage(element, text, isError = false) {
+      element.textContent = text;
+      element.classList.toggle("error", isError);
+      element.style.display = "block";
+    }
+
+    function hideMessage(element) {
+      element.style.display = "none";
+      element.textContent = "";
+      element.classList.remove("error");
+    }
+
+    function navigate(page) {
+      const target = document.getElementById("page-" + page);
+
+      if (!target) return;
+
+      currentPage = page;
+
+      $$(".page").forEach((section) => {
+        section.classList.toggle("active", section.id === "page-" + page);
+      });
+
+      $$(".nav-button[data-page]").forEach((button) => {
+        const active = button.dataset.page === page;
+        button.classList.toggle("active", active);
+
+        if (active) {
+          button.setAttribute("aria-current", "page");
+        } else {
+          button.removeAttribute("aria-current");
+        }
+      });
+
+      closeMenu();
+      renderProfile();
+
+      if (page === "about") {
+        const profile = readProfile();
+        nameInput.value = profile.name;
+        emailInput.value = profile.email;
+        hideMessage($("#profileMessage"));
+      }
+
+      if (page === "balance") {
+        renderHistory();
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function openMenu() {
+      document.body.classList.add("menu-open");
+      $("#menuToggle").setAttribute("aria-expanded", "true");
+      $("#menuToggle").setAttribute("aria-label", "Закрыть меню");
+      $("#menuToggle").textContent = "×";
+    }
+
+    function closeMenu() {
+      document.body.classList.remove("menu-open");
+      $("#menuToggle").setAttribute("aria-expanded", "false");
+      $("#menuToggle").setAttribute("aria-label", "Открыть меню");
+      $("#menuToggle").textContent = "☰";
+    }
+
+    function getHistory() {
+      try {
+        const data = JSON.parse(localStorage.getItem("aiStudioDemoHistory") || "[]");
+        return Array.isArray(data) ? data.slice(0, 10) : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function renderHistory() {
+      const container = $("#balanceHistory");
+      const history = getHistory();
+
+      container.replaceChildren();
+
+      if (history.length === 0) {
+        container.className = "history-empty";
+        container.textContent = "Пока операций нет. Можешь добавить тестовые токены выше.";
+        return;
+      }
+
+      container.className = "";
+
+      history.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "settings-row";
+
+        const details = document.createElement("div");
+        const title = document.createElement("strong");
+        const date = document.createElement("p");
+        const amount = document.createElement("span");
+
+        title.textContent = "Демо-пополнение";
+        date.textContent = item.date || "";
+        amount.className = "badge";
+        amount.textContent = "+" + formatNumber(Number(item.amount) || 0) + " токенов";
+
+        details.append(title, date);
+        row.append(details, amount);
+        container.appendChild(row);
+      });
+    }
+
+    function addTokens(amount) {
+      const current = getTokens();
+
+      if (current + amount > Number.MAX_SAFE_INTEGER) {
+        showMessage($("#balanceMessage"), "Не удалось добавить токены: превышен допустимый предел.", true);
+        return;
+      }
+
+      try {
+        localStorage.setItem("aiStudioDemoTokens", String(current + amount));
+
+        const history = getHistory();
+        history.unshift({
+          amount,
+          date: new Date().toLocaleString("ru-RU")
+        });
+
+        localStorage.setItem("aiStudioDemoHistory", JSON.stringify(history.slice(0, 10)));
+
+        renderProfile();
+        renderHistory();
+
+        showMessage(
+          $("#balanceMessage"),
+          "Добавлено " + formatNumber(amount) + " тестовых токенов. Реального платежа не было."
+        );
+      } catch (error) {
+        showMessage(
+          $("#balanceMessage"),
+          "Не удалось сохранить изменения. Возможно, хранилище браузера заполнено.",
+          true
+        );
+      }
+    }
+
+    // Навигация
+    $$(".nav-button[data-page]").forEach((button) => {
+      button.addEventListener("click", () => navigate(button.dataset.page));
+    });
+
+    $$("[data-go]").forEach((button) => {
+      button.addEventListener("click", () => navigate(button.dataset.go));
+    });
+
+    $("#menuToggle").addEventListener("click", () => {
+      if (document.body.classList.contains("menu-open")) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    $("#overlay").addEventListener("click", closeMenu);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+
+    // Сохранение профиля
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
       const name = nameInput.value.trim();
       const email = emailInput.value.trim();
 
-      displayName.textContent = name || "Новый пользователь";
-      displayEmail.textContent = email || "Электронная почта не указана";
-      avatar.textContent = name ? name.charAt(0).toUpperCase() : "U";
-    }
+      if (!name) {
+        showMessage($("#profileMessage"), "Пожалуйста, укажи своё имя.", true);
+        return;
+      }
 
-    function showMessage(text) {
-      message.textContent = text;
-      message.style.display = "block";
-    }
+      if (email && !emailInput.validity.valid) {
+        showMessage($("#profileMessage"), "Проверь правильность email.", true);
+        return;
+      }
 
-    nameInput.addEventListener("input", updatePreview);
-    emailInput.addEventListener("input", updatePreview);
+      try {
+        const oldProfile = readProfile();
 
-    form.addEventListener("submit", function(event) {
-      event.preventDefault();
+        saveProfile({
+          ...oldProfile,
+          name,
+          email
+        });
 
-      const profile = {
-        name: nameInput.value.trim(),
-        email: emailInput.value.trim()
+        renderProfile();
+
+        showMessage($("#profileMessage"), "Изменения сохранены на этом устройстве.");
+      } catch (error) {
+        showMessage(
+          $("#profileMessage"),
+          "Не удалось сохранить данные. Возможно, хранилище браузера заполнено.",
+          true
+        );
+      }
+    });
+
+    $("#resetButton").addEventListener("click", () => {
+      const profile = readProfile();
+      nameInput.value = profile.name;
+      emailInput.value = profile.email;
+      hideMessage($("#profileMessage"));
+    });
+
+    // Загрузка фотографии
+    avatarInput.addEventListener("change", () => {
+      const file = avatarInput.files && avatarInput.files[0];
+
+      if (!file) return;
+
+      hideMessage($("#avatarMessage"));
+
+      if (!file.type.startsWith("image/")) {
+        showMessage($("#avatarMessage"), "Выбери файл изображения.", true);
+        avatarInput.value = "";
+        return;
+      }
+
+      if (file.size > MAX_AVATAR_SIZE) {
+        showMessage(
+          $("#avatarMessage"),
+          "Файл слишком большой. Выбери фотографию размером до 1,5 МБ.",
+          true
+        );
+        avatarInput.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (typeof reader.result !== "string") {
+          showMessage($("#avatarMessage"), "Не удалось прочитать изображение.", true);
+          return;
+        }
+
+        try {
+          const profile = readProfile();
+          profile.avatar = reader.result;
+          saveProfile(profile);
+          renderProfile();
+
+          showMessage($("#avatarMessage"), "Фотография профиля сохранена.");
+        } catch (error) {
+          showMessage(
+            $("#avatarMessage"),
+            "Не удалось сохранить фото. Попробуй выбрать изображение поменьше.",
+            true
+          );
+        }
+
+        avatarInput.value = "";
       };
 
+      reader.onerror = () => {
+        showMessage($("#avatarMessage"), "Не удалось прочитать изображение.", true);
+        avatarInput.value = "";
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    $("#removeAvatar").addEventListener("click", () => {
       try {
-        localStorage.setItem("aiStudioProfile", JSON.stringify(profile));
-        updatePreview();
-        showMessage("Изменения сохранены на этом устройстве.");
+        const profile = readProfile();
+        profile.avatar = "";
+        saveProfile(profile);
+        renderProfile();
+        showMessage($("#avatarMessage"), "Фотография удалена.");
       } catch (error) {
-        showMessage("Не удалось сохранить данные. Возможно, браузер ограничивает локальное хранилище.");
+        showMessage($("#avatarMessage"), "Не удалось изменить фотографию.", true);
       }
     });
 
-    document.getElementById("resetButton").addEventListener("click", function() {
-      nameInput.value = "";
-      emailInput.value = "";
-      updatePreview();
-
-      try {
-        localStorage.removeItem("aiStudioProfile");
-        showMessage("Данные профиля сброшены.");
-      } catch (error) {
-        showMessage("Поля очищены, но удалить сохранённые данные не удалось.");
-      }
+    // Демо-пополнение
+    $$("[data-add-tokens]").forEach((button) => {
+      button.addEventListener("click", () => {
+        addTokens(Number(button.dataset.addTokens));
+      });
     });
 
-    document.getElementById("logoutButton").addEventListener("click", function() {
+    // Тарифы пока демонстрационные
+    $$("[data-plan]").forEach((button) => {
+      button.addEventListener("click", () => {
+        showMessage(
+          $("#planMessage"),
+          "Тариф «" + button.dataset.plan + "» пока демонстрационный. Подписки и платежи ещё не подключены."
+        );
+      });
+    });
+
+    // Переход ко входу — без удаления данных профиля
+    $("#logoutButton").addEventListener("click", () => {
       window.location.href = "auth.html";
     });
 
-    loadProfile();
+    // Начальная загрузка
+    renderProfile();
+    renderHistory();
+
+    // Если пользователь вернулся на широком экране, закрываем мобильное меню
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 680) closeMenu();
+    });
   </script>
+
 </body>
 </html>
