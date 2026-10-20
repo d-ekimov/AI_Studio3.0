@@ -446,8 +446,9 @@
 
         try {
           localStorage.setItem("aiStudioProfile", JSON.stringify(profile));
-          showNotice("Данные сохранены. Открываем профиль…", "success");
-          window.location.href = "profile.html";
+localStorage.setItem("aiStudioRegistered", "true");
+showNotice("Данные сохранены. Открываем профиль…", "success");
+window.location.href = "profile.html";
         } catch (error) {
           showNotice(
             "Браузер не разрешил сохранить данные. Проверь настройки браузера.",
@@ -476,12 +477,14 @@
         return;
       }
 
-      showNotice(
-        "E-mail совпадает. В демо-режиме пароль не проверяется. Открываем профиль…",
-        "success"
-      );
+      localStorage.setItem("aiStudioRegistered", "true");
 
-      window.location.href = "profile.html";
+showNotice(
+  "E-mail совпадает. Открываем профиль…",
+  "success"
+);
+
+window.location.href = "profile.html";
     });
 
     document.getElementById("googleButton").addEventListener("click", () => {
