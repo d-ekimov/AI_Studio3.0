@@ -12,3 +12,7 @@
 .install-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #302b43;background:#191722;border-radius:12px;padding:13px 15px;margin:18px 0}.install-banner strong{font-size:11px}.install-banner p{font-size:10px;color:#9295a7;margin:3px 0 0}
 .light-theme .media-model-card{background:#fff;border-color:#e1deeb}.light-theme .media-model-card .provider-key{background:#faf9fd;color:#292638;border-color:#dedbe8}.light-theme .install-banner{background:#faf9fd;border-color:#e1deeb}
 @media(max-width:900px){.media-models{grid-template-columns:1fr 1fr}}@media(max-width:600px){.media-models{grid-template-columns:1fr}.media-model-card p{min-height:0}.install-banner{align-items:flex-start;flex-direction:column}.install-app-btn{font-size:9px;padding:7px}}
+/* Add to the end of enhancements.css */
+.provider-icon svg { display:block; width:26px; height:26px; }
+.media-model-art svg { display:block; width:42px; height:42px; }
+#installAppButton:disabled, #installInline:disabled { opacity:.72; cursor:default; }
