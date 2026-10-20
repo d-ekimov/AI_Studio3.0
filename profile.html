@@ -1418,7 +1418,11 @@
     function renderAvatar(element, profile) {
       element.replaceChildren();
 
-      if (profile.avatar && profile.avatar.startsWith("data:image/")) {
+      if (
+  profile.avatar &&
+  (profile.avatar.startsWith("data:image/") ||
+   profile.avatar.startsWith("https://"))
+) {
         const img = document.createElement("img");
         img.src = profile.avatar;
         img.alt = "Фотография профиля";
@@ -1659,63 +1663,88 @@
       hideMessage($("#profileMessage"));
     });
 
-    // Загрузка фотографии
-    avatarInput.addEventListener("change", () => {
-      const file = avatarInput.files && avatarInput.files[0];
+ // Загрузка фотографии
+avatarInput.addEventListener("change", async () => {
+  const file = avatarInput.files && avatarInput.files[0];
 
-      if (!file) return;
+  if (!file) return;
 
-      hideMessage($("#avatarMessage"));
+  const message = $("#avatarMessage");
+  hideMessage(message);
 
-      if (!file.type.startsWith("image/")) {
-        showMessage($("#avatarMessage"), "Выбери файл изображения.", true);
-        avatarInput.value = "";
-        return;
-      }
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif"
+  ];
 
-      if (file.size > MAX_AVATAR_SIZE) {
-        showMessage(
-          $("#avatarMessage"),
-          "Файл слишком большой. Выбери фотографию размером до 1,5 МБ.",
-          true
-        );
-        avatarInput.value = "";
-        return;
-      }
+  if (!allowedTypes.includes(file.type)) {
+    showMessage(message, "Выбери JPG, PNG, WebP или GIF.", true);
+    avatarInput.value = "";
+    return;
+  }
 
-      const reader = new FileReader();
+  if (file.size > MAX_AVATAR_SIZE) {
+    showMessage(message, "Файл слишком большой. Максимум — 10 МБ.", true);
+    avatarInput.value = "";
+    return;
+  }
 
-      reader.onload = () => {
-        if (typeof reader.result !== "string") {
-          showMessage($("#avatarMessage"), "Не удалось прочитать изображение.", true);
-          return;
-        }
+  try {
+    const supabase = window.aiStudioSupabase;
 
-        try {
-          const profile = readProfile();
-          profile.avatar = reader.result;
-          saveProfile(profile);
-          renderProfile();
+    if (!supabase) {
+      throw new Error("Supabase не подключён.");
+    }
 
-          showMessage($("#avatarMessage"), "Фотография профиля сохранена.");
-        } catch (error) {
-          showMessage(
-            $("#avatarMessage"),
-            "Не удалось сохранить фото. Попробуй выбрать изображение поменьше.",
-            true
-          );
-        }
+    const { data: userData, error: userError } =
+      await supabase.auth.getUser();
 
-        avatarInput.value = "";
-      };
+    if (userError) throw userError;
 
-      reader.onerror = () => {
-        showMessage($("#avatarMessage"), "Не удалось прочитать изображение.", true);
-        avatarInput.value = "";
-      };
+    const user = userData.user;
 
-      reader.readAsDataURL(file);
-    });
+    if (!user) {
+      showMessage(message, "Войди в аккаунт и попробуй снова.", true);
+      return;
+    }
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `${user.id}/${Date.now()}-${safeName}`;
+
+    showMessage(message, "Загружаю фотографию в облако...");
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    const profile = readProfile();
+    profile.avatar = urlData.publicUrl;
+    saveProfile(profile);
+    renderProfile();
+
+    showMessage(message, "Фотография загружена и сохранена!");
+  } catch (error) {
+    console.error("Ошибка загрузки фотографии:", error);
+    showMessage(
+      message,
+      "Не удалось загрузить фото. Проверь подключение и настройки Supabase.",
+      true
+    );
+  } finally {
+    avatarInput.value = "";
+  }
+});
 
     $("#removeAvatar").addEventListener("click", () => {
       try {
