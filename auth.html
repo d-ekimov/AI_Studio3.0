@@ -385,6 +385,20 @@ let busy = false;
 const authUrl = window.location.origin + "/AI_Studio3.0/auth.html";
 const profileUrl = window.location.origin + "/AI_Studio3.0/profile.html";
 
+async function redirectIfSignedIn() {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (!error && data.session) {
+      window.location.replace(profileUrl);
+    }
+  } catch (error) {
+    console.error("Ошибка проверки сессии:", error);
+  }
+}
+
+redirectIfSignedIn();
+  
 function showNotice(text, type = "") {
   notice.textContent = text;
   notice.className = "notice" + (type ? " " + type : "");
