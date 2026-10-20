@@ -1752,17 +1752,40 @@ renderProfile();
   }
 });
 
-    $("#removeAvatar").addEventListener("click", () => {
-      try {
-        const profile = readProfile();
-        profile.avatar = "";
-        saveProfile(profile);
-        renderProfile();
-        showMessage($("#avatarMessage"), "Фотография удалена.");
-      } catch (error) {
-        showMessage($("#avatarMessage"), "Не удалось изменить фотографию.", true);
-      }
+    
+$("#removeAvatar").addEventListener("click", async () => {
+  const message = $("#avatarMessage");
+
+  try {
+    const supabase = window.aiStudioSupabase;
+
+    if (!supabase) {
+      throw new Error("Supabase не подключён.");
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      data: { avatar_url: null }
     });
+
+    if (error) throw error;
+
+    const profile = readProfile();
+    profile.avatar = "";
+    saveProfile(profile);
+    renderProfile();
+
+    showMessage(message, "Фотография удалена.");
+  } catch (error) {
+    console.error("Ошибка удаления фотографии:", error);
+
+    showMessage(
+      message,
+      "Не удалось удалить фотографию. Попробуй ещё раз.",
+      true
+    );
+  }
+});
+
 
     // Демо-пополнение
     $$("[data-add-tokens]").forEach((button) => {
