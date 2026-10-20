@@ -1885,10 +1885,10 @@ $("#logoutButton").addEventListener("click", async () => {
         }
 
         if (
-          typeof metadata.avatar_url === "string" &&
-          metadata.avatar_url.startsWith("https://")
-        ) {
-          profile.avatar = metadata.avatar_url;
+  typeof metadata.profile_avatar_url === "string" &&
+  metadata.profile_avatar_url.startsWith("https://")
+) {
+  profile.avatar = metadata.profile_avatar_url;
         }
 
         saveProfile(profile);
