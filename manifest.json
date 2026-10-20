@@ -1,13 +1,15 @@
 {
-  "name": "AI Studio — единое пространство для ИИ",
+  "id": "./",
+  "name": "AI Studio",
   "short_name": "AI Studio",
-  "description": "Единое пространство для работы с ИИ",
+  "description": "AI Studio — рабочее пространство для ИИ-моделей",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0c0d12",
-  "theme_color": "#0c0d12",
+  "theme_color": "#7750e8",
   "icons": [
     {
       "src": "./icons/icon.svg",
