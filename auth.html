@@ -357,153 +357,191 @@
     </button>
   </main>
 
-  <script>
-    const loginTab = document.getElementById("loginTab");
-    const registerTab = document.getElementById("registerTab");
-    const nameField = document.getElementById("nameField");
-    const nameInput = document.getElementById("nameInput");
-    const emailInput = document.getElementById("emailInput");
-    const passwordInput = document.getElementById("passwordInput");
-    const heading = document.getElementById("heading");
-    const description = document.getElementById("description");
-    const submitButton = document.getElementById("submitButton");
-    const forgotRow = document.getElementById("forgotRow");
-    const notice = document.getElementById("notice");
-    const authForm = document.getElementById("authForm");
+   
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    let currentMode = "login";
+const SUPABASE_URL = "https://zzjfceazpjpavnyyigek.supabase.co";
+const SUPABASE_KEY = "sb_publishable_uZhcc1D66aEzG5xqoe1jcg_Ts7NZI3V";
 
-    function showNotice(text, type = "") {
-      notice.textContent = text;
-      notice.className = "notice" + (type ? " " + type : "");
-    }
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function getSavedProfile() {
-      try {
-        const saved = localStorage.getItem("aiStudioProfile");
-        return saved ? JSON.parse(saved) : null;
-      } catch (error) {
-        return null;
-      }
-    }
+const loginTab = document.getElementById("loginTab");
+const registerTab = document.getElementById("registerTab");
+const nameField = document.getElementById("nameField");
+const nameInput = document.getElementById("nameInput");
+const emailInput = document.getElementById("emailInput");
+const passwordInput = document.getElementById("passwordInput");
+const heading = document.getElementById("heading");
+const description = document.getElementById("description");
+const submitButton = document.getElementById("submitButton");
+const forgotRow = document.getElementById("forgotRow");
+const notice = document.getElementById("notice");
+const authForm = document.getElementById("authForm");
 
-    function setMode(mode) {
-      currentMode = mode;
-      const registering = mode === "register";
+let currentMode = "login";
+let busy = false;
 
-      loginTab.classList.toggle("active", !registering);
-      registerTab.classList.toggle("active", registering);
+const authUrl = window.location.origin + "/AI_Studio3.0/auth.html";
+const profileUrl = window.location.origin + "/AI_Studio3.0/profile.html";
 
-      loginTab.setAttribute("aria-selected", String(!registering));
-      registerTab.setAttribute("aria-selected", String(registering));
+function showNotice(text, type = "") {
+  notice.textContent = text;
+  notice.className = "notice" + (type ? " " + type : "");
+}
 
-      nameField.hidden = !registering;
-      nameInput.required = registering;
+function setBusy(value) {
+  busy = value;
+  submitButton.disabled = value;
+}
 
-      passwordInput.autocomplete = registering
-        ? "new-password"
-        : "current-password";
+function setMode(mode) {
+  currentMode = mode;
+  const registering = mode === "register";
 
-      heading.textContent = registering
-        ? "Создай аккаунт"
-        : "С возвращением";
+  loginTab.classList.toggle("active", !registering);
+  registerTab.classList.toggle("active", registering);
+  loginTab.setAttribute("aria-selected", String(!registering));
+  registerTab.setAttribute("aria-selected", String(registering));
 
-      description.textContent = registering
-        ? "Заполни данные, чтобы продолжить."
-        : "Войди, чтобы продолжить работу с любимыми AI-инструментами.";
+  nameField.hidden = !registering;
+  nameInput.required = registering;
+  passwordInput.autocomplete = registering
+    ? "new-password"
+    : "current-password";
 
-      submitButton.innerHTML = registering
-        ? 'Создать аккаунт <span>→</span>'
-        : 'Войти в аккаунт <span>→</span>';
+  heading.textContent = registering
+    ? "Создай аккаунт"
+    : "С возвращением";
 
-      forgotRow.hidden = registering;
+  description.textContent = registering
+    ? "Заполни данные, чтобы продолжить."
+    : "Войди, чтобы продолжить работу с любимыми AI-инструментами.";
 
-      showNotice(
-        "Демонстрационный режим. Настоящая авторизация ещё не подключена. Не используй настоящий пароль."
-      );
-    }
+  submitButton.innerHTML = registering
+    ? 'Создать аккаунт <span>→</span>'
+    : 'Войти в аккаунт <span>→</span>';
 
-    loginTab.addEventListener("click", () => setMode("login"));
-    registerTab.addEventListener("click", () => setMode("register"));
+  forgotRow.hidden = registering;
+  showNotice(registering
+    ? "Создай аккаунт AI Studio."
+    : "Войди в свой аккаунт AI Studio.");
+}
 
-    authForm.addEventListener("submit", function(event) {
-      event.preventDefault();
+loginTab.addEventListener("click", () => setMode("login"));
+registerTab.addEventListener("click", () => setMode("register"));
 
-      const name = nameInput.value.trim();
-      const email = emailInput.value.trim().toLowerCase();
-      const password = passwordInput.value;
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (busy) return;
 
-      if (!email || !password || (currentMode === "register" && !name)) {
-        showNotice("Заполни все обязательные поля.", "error");
-        return;
-      }
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim().toLowerCase();
+  const password = passwordInput.value;
 
-      if (currentMode === "register") {
-        const profile = {
-          name: name,
-          email: email
-        };
+  if (!email || !password || (currentMode === "register" && !name)) {
+    showNotice("Заполни все обязательные поля.", "error");
+    return;
+  }
 
-        try {
-          localStorage.setItem("aiStudioProfile", JSON.stringify(profile));
-localStorage.setItem("aiStudioRegistered", "true");
-showNotice("Данные сохранены. Открываем профиль…", "success");
-window.location.href = "profile.html";
-        } catch (error) {
-          showNotice(
-            "Браузер не разрешил сохранить данные. Проверь настройки браузера.",
-            "error"
-          );
+  setBusy(true);
+
+  try {
+    if (currentMode === "register") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: authUrl
         }
+      });
 
+      if (error) throw error;
+
+      if (data.session) {
+        window.location.replace(profileUrl);
         return;
       }
 
-      const profile = getSavedProfile();
-
-      if (!profile || !profile.email) {
-        showNotice(
-          "Демо-профиль не найден. Перейди во вкладку «Регистрация» и создай его.",
-          "error"
-        );
-        return;
-      }
-
-      if (profile.email.toLowerCase() !== email) {
-        showNotice(
-          "Этот e-mail не совпадает с демо-профилем на данном устройстве.",
-          "error"
-        );
-        return;
-      }
-
-      localStorage.setItem("aiStudioRegistered", "true");
-
-showNotice(
-  "E-mail совпадает. Открываем профиль…",
-  "success"
-);
-
-window.location.href = "profile.html";
-    });
-
-    document.getElementById("googleButton").addEventListener("click", () => {
       showNotice(
-        "Вход через Google пока не подключён. Для него потребуется настроить сервис авторизации."
+        "Аккаунт создан! Проверь почту и подтверди email, затем войди.",
+        "success"
       );
+      setMode("login");
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      window.location.replace(profileUrl);
+      return;
+    }
+  } catch (error) {
+    showNotice(error.message || "Не удалось выполнить авторизацию.", "error");
+  } finally {
+    setBusy(false);
+  }
+});
+
+document.getElementById("googleButton").addEventListener("click", async () => {
+  if (busy) return;
+  setBusy(true);
+
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: authUrl }
     });
 
-    document.getElementById("forgotButton").addEventListener("click", () => {
-      showNotice(
-        "Восстановление пароля станет доступно после подключения настоящей авторизации."
-      );
+    if (error) throw error;
+  } catch (error) {
+    showNotice(error.message || "Не удалось войти через Google.", "error");
+    setBusy(false);
+  }
+});
+
+document.getElementById("forgotButton").addEventListener("click", async () => {
+  const email = emailInput.value.trim().toLowerCase();
+
+  if (!email) {
+    showNotice("Сначала введи свой email.", "error");
+    emailInput.focus();
+    return;
+  }
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: authUrl
     });
 
-    document.getElementById("backButton").addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
+    if (error) throw error;
 
+    showNotice("Если для этого email существует аккаунт, инструкция для сброса пароля будет отправлена на почту.", "success");
+  } catch (error) {
+    showNotice(error.message || "Не удалось отправить письмо.", "error");
+  }
+});
+
+document.getElementById("backButton").addEventListener("click", () => {
+  window.location.href = "index.html";
+});
+
+try {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  if (data.session) {
+    window.location.replace(profileUrl);
+  } else {
     setMode("login");
-  </script>
+  }
+} catch (error) {
+  showNotice("Ошибка подключения к авторизации. Проверь настройки Supabase.", "error");
+}
+</script>    
 </body>
 </html>
