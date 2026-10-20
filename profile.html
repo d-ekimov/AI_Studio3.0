@@ -5,23 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0c0d12">
   <title>Мой кабинет — AI Studio</title>
-<script>
-  // Демо-проверка входа.
-  // Для настоящей защиты нужна серверная авторизация.
-  (function () {
-    function checkDemoSession() {
-      try {
-        if (localStorage.getItem("aiStudioRegistered") !== "true") {
-          window.location.replace("auth.html");
-        }
-      } catch (error) {
-        window.location.replace("auth.html");
-      }
-    }
 
-    checkDemoSession();
-    window.addEventListener("pageshow", checkDemoSession);
-  })();
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+  const SUPABASE_URL = "https://zzjfceazpjpavnyyigek.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_uZhcc1D66aEzG5xqoe1jcg_Ts7NZI3V";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.aiStudioSupabase = supabase;
+
+  async function checkSession() {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error || !data.session) {
+      window.location.replace("auth.html");
+    }
+  }
+
+  checkSession();
+  window.addEventListener("pageshow", checkSession);
 </script>
   <style>
     :root {
