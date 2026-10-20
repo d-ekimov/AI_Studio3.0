@@ -1747,11 +1747,26 @@
     });
 
     // Выход из демосессии без удаления профиля
-$("#logoutButton").addEventListener("click", () => {
+
+$("#logoutButton").addEventListener("click", async () => {
   try {
-    localStorage.removeItem("aiStudioRegistered");
-  } finally {
+    const supabase = window.aiStudioSupabase;
+
+    if (!supabase) {
+      alert("Подключение к авторизации ещё не готово. Обнови страницу.");
+      return;
+    }
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      alert("Не удалось выйти из аккаунта. Попробуй ещё раз.");
+      return;
+    }
+
     window.location.replace("auth.html");
+  } catch (error) {
+    alert("Ошибка при выходе из аккаунта.");
   }
 });
 
