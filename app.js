@@ -56,7 +56,28 @@
   const persistChats=()=>{save("aistudio_chats",chats);renderHistory();};
   const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
   $("#newChat").addEventListener("click",newChat);
-  $("#modelSelect").addEventListener("change",()=>{const val=$("#modelSelect").value;$("#activeModelName").textContent=modelName();$(".provider-icon.openai",$("#page-chat")).textContent=val==="deepseek"?"◈":val==="future"?"✧":"✳";toast("Выбрана модель: "+modelName());});
+  $("#modelSelect").addEventListener("change", () => {
+  const val = $("#modelSelect").value;
+  $("#activeModelName").textContent = modelName();
+
+  const icon = $(".provider-icon.openai", $("#page-chat"));
+
+  if (val === "deepseek") {
+    icon.innerHTML = '<img src="./images/logos/deepseek.jpeg" alt="DeepSeek">';
+    icon.classList.remove("openai");
+    icon.classList.add("deepseek");
+  } else if (val === "future") {
+    icon.textContent = "✧";
+    icon.classList.remove("deepseek");
+    icon.classList.add("openai");
+  } else {
+    icon.innerHTML = '<img src="./images/logos/gpt.jpeg" alt="ChatGPT">';
+    icon.classList.remove("deepseek");
+    icon.classList.add("openai");
+  }
+
+  toast("Выбрана модель: " + modelName());
+});
   const demoAnswer=(prompt,model)=>{
     const p=prompt.toLowerCase();
     const intro=model==="deepseek"?"Давай разложим запрос по шагам.":"Хорошая отправная точка! Предлагаю двигаться постепенно.";
