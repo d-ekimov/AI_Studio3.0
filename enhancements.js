@@ -34,6 +34,10 @@
   function addMarks() {
     document.querySelectorAll(".provider-icon.openai").forEach(el => { el.innerHTML = openai; el.setAttribute("aria-label", "OpenAI / ChatGPT"); });
     document.querySelectorAll(".provider-icon.deepseek").forEach(el => { el.innerHTML = whale; el.setAttribute("aria-label", "DeepSeek"); });
+    document.querySelectorAll(".provider-icon.gemini").forEach(el => {
+      el.innerHTML = `<img src="./images/logos/gemini.png" alt="Gemini">`;
+      el.setAttribute("aria-label", "Gemini");
+    });
         document.querySelectorAll(".media-model-card").forEach(card => {
       const title = card.querySelector("h3")?.textContent || "";
       const art = card.querySelector(".media-model-art");
