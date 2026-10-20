@@ -37,3 +37,43 @@
   margin: auto;
   flex: 0 0 auto;
 }
+/* Исправление бокового меню на мобильных устройствах */
+@media (max-width: 760px) {
+.sidebar {
+height: 100vh;
+height: 100dvh;
+max-height: 100dvh;
+overflow-x: hidden;
+overflow-y: auto;
+overscroll-behavior: contain;
+background: #101117;
+padding-bottom: calc(14px + env(safe-area-inset-bottom));
+-webkit-overflow-scrolling: touch;
+}
+
+.sidebar-bottom {
+position: sticky;
+bottom: 0;
+flex-shrink: 0;
+margin-top: auto;
+padding-top: 10px;
+background: #101117;
+isolation: isolate;
+z-index: 2;
+}
+
+.profile {
+position: relative;
+flex-shrink: 0;
+background: #101117;
+opacity: 1;
+}
+
+.profile-copy,
+.profile-copy strong,
+.profile-copy small,
+.profile .avatar,
+.profile .dots {
+opacity: 1;
+}
+}
