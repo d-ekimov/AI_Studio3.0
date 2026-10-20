@@ -29,7 +29,7 @@
     } catch (_) { help(); }
     installPrompt = null;
   }
-    const openai = `<img src="./images/logos/gpt.jpeg" alt="OpenAI / ChatGPT">`;
+  const openai = `<img src="./images/logos/gpt.jpeg" alt="OpenAI / ChatGPT">`;
   const whale = `<img src="./images/logos/deepseek.jpeg" alt="DeepSeek">`;
   function addMarks() {
     document.querySelectorAll(".provider-icon.openai").forEach(el => { el.innerHTML = openai; el.setAttribute("aria-label", "OpenAI / ChatGPT"); });
@@ -38,7 +38,7 @@
       el.innerHTML = `<img src="./images/logos/gemini.png" alt="Gemini">`;
       el.setAttribute("aria-label", "Gemini");
     });
-        document.querySelectorAll(".media-model-card").forEach(card => {
+    document.querySelectorAll(".media-model-card").forEach(card => {
       const title = card.querySelector("h3")?.textContent || "";
       const art = card.querySelector(".media-model-art");
       if (!art) return;
