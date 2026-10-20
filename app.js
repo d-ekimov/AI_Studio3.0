@@ -60,7 +60,7 @@
   const val = $("#modelSelect").value;
   $("#activeModelName").textContent = modelName();
 
-  const icon = $(".provider-icon.openai", $("#page-chat"));
+  const icon = $(".model-select-wrap .provider-icon", $("#page-chat"));
 
   if (val === "deepseek") {
     icon.innerHTML = '<img src="./images/logos/deepseek.jpeg" alt="DeepSeek">';
