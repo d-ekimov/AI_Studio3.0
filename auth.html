@@ -464,11 +464,11 @@ authForm.addEventListener("submit", async (event) => {
         return;
       }
 
+      setMode("login");
       showNotice(
         "Аккаунт создан! Проверь почту и подтверди email, затем войди.",
         "success"
       );
-      setMode("login");
     } else {
       const { error } = await supabase.auth.signInWithPassword({
         email,
