@@ -1,0 +1,14 @@
+/* Дополнения AI Studio: старый дизайн не переписываем */
+.install-app-btn{border:1px solid #39334d;background:linear-gradient(135deg,#302640,#1b1927);color:#e4d9ff;border-radius:9px;padding:7px 10px;font-size:10px;font-weight:700;white-space:nowrap}
+.install-app-btn:hover{border-color:#a78bfa}.install-app-btn[hidden]{display:none}
+.media-tools-heading{margin:24px 0 10px}.media-tools-heading h2{font:800 19px Manrope,sans-serif;margin:7px 0}.media-tools-heading h2 span{color:#b8a0ff}.media-tools-heading p{font-size:11px;color:var(--muted);margin:4px 0}
+.media-models{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:14px}
+.media-model-card{border:1px solid #2a2c38;background:#14161e;border-radius:14px;padding:15px;min-width:0}
+.media-model-art{height:76px;border-radius:10px;display:grid;place-items:center;font-size:32px;margin-bottom:12px;background:radial-gradient(circle at 25% 20%,#6951a6,#252037 55%,#171821)}
+.media-model-art.video-art{background:radial-gradient(circle at 25% 20%,#286e8b,#20283d 55%,#171821)}.media-model-art.audio-art{background:radial-gradient(circle at 25% 20%,#8b4f83,#32243d 55%,#171821)}
+.media-model-card h3{font:700 13px Manrope,sans-serif;margin:0 0 5px}.media-model-card p{font-size:11px;color:#a0a2b1;min-height:48px;margin:0 0 10px}.media-model-card small{display:block;color:#8b8ea1;font-size:9px;line-height:1.5}
+.api-key-label{display:block;margin-top:10px;font-size:10px;color:#b9bbca}.media-model-card .provider-key{display:block;width:100%;margin-top:5px;background:#101117;color:#eee;border:1px solid #353746;border-radius:8px;padding:9px;font-size:10px;min-width:0}
+.media-model-card .provider-actions{display:flex;gap:7px;margin-top:9px}.media-model-card .provider-actions button{flex:1;min-width:0}.media-model-card .connect-state{font-size:9px;color:#e2c58b;margin-top:8px;min-height:14px}
+.install-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #302b43;background:#191722;border-radius:12px;padding:13px 15px;margin:18px 0}.install-banner strong{font-size:11px}.install-banner p{font-size:10px;color:#9295a7;margin:3px 0 0}
+.light-theme .media-model-card{background:#fff;border-color:#e1deeb}.light-theme .media-model-card .provider-key{background:#faf9fd;color:#292638;border-color:#dedbe8}.light-theme .install-banner{background:#faf9fd;border-color:#e1deeb}
+@media(max-width:900px){.media-models{grid-template-columns:1fr 1fr}}@media(max-width:600px){.media-models{grid-template-columns:1fr}.media-model-card p{min-height:0}.install-banner{align-items:flex-start;flex-direction:column}.install-app-btn{font-size:9px;padding:7px}}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0c0d12" />
+  <meta name="description" content="AI Studio — единое пространство для работы с ИИ." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <title>AI Studio — единое пространство для ИИ</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="enhancements.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="brand-mark">✳</div><div><strong>AI Studio</strong><small>Твоё пространство ИИ</small></div></div>
+      <button class="new-chat" id="newChat"><span>＋</span> Новый чат <kbd>⌘ K</kbd></button>
+      <nav class="main-nav" aria-label="Главная навигация">
+        <button class="nav-item active" data-page="chat"><span>◉</span> Чат</button>
+        <button class="nav-item" data-page="compare"><span>◫</span> Несколько ИИ <span class="nav-tag">NEW</span></button>
+        <button class="nav-item" data-page="projects"><span>▦</span> Проекты</button>
+        <button class="nav-item" data-page="tasks"><span>☷</span> Задачи</button>
+        <button class="nav-item" data-page="models"><span>✧</span> Модели</button>
+      </nav>
+      <div class="side-label">ПОСЛЕДНИЕ ЧАТЫ <button id="clearHistory" title="Очистить историю">···</button></div>
+      <div class="history-list" id="historyList"></div>
+      <div class="sidebar-bottom">
+        <div class="usage-card"><div class="usage-top"><span class="usage-dot"></span><span>Режим прототипа</span></div><p>Ответы пока демонстрационные. API подключим позже.</p><button data-page="models">Настроить пространство <span>↗</span></button></div>
+        <button class="profile" id="profileButton"><div class="avatar">D</div><div class="profile-copy"><strong>Мой аккаунт</strong><small>Локальный профиль</small></div><span class="dots">···</span></button>
+      </div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <button class="icon-btn mobile-menu" id="menuToggle" aria-label="Открыть меню">☰</button>
+        <div class="breadcrumb"><span>Рабочее пространство</span><span class="crumb-slash">/</span><strong id="pageCrumb">Чат</strong></div>
+        <div class="top-actions"><button class="install-app-btn" id="installAppButton" type="button" hidden>↓ Установить</button><span class="status-pill"><i></i> Все системы готовы</span><button class="icon-btn" id="themeToggle" title="Переключить оформление">◐</button><button class="help-btn" id="helpButton">? <span>Помощь</span></button></div>
+      </header>
+      <section class="page active-page" id="page-chat">
+        <div class="chat-layout">
+          <div class="chat-heading"><div><div class="eyebrow"><span class="spark">✦</span> ТВОЯ AI-МАСТЕРСКАЯ</div><h1>Привет! Что будем <span>создавать?</span></h1><p>Выбирай модель, задавай вопросы и собирай идеи в одном месте.</p></div><div class="heading-badge">✳ <span>AI Studio</span></div></div>
+          <div class="model-strip"><div class="model-select-wrap"><span class="provider-icon openai">✳</span><div class="model-info"><small>ОТВЕЧАЕТ</small><strong id="activeModelName">ChatGPT · Demo</strong></div><select id="modelSelect" aria-label="Выбрать модель"><option value="chatgpt">ChatGPT · Demo</option><option value="deepseek">DeepSeek · Demo</option><option value="future">Будущая модель · Demo</option></select><span class="chevron">⌄</span></div><span class="demo-note"><i></i> Демо-режим</span></div>
+          <div class="welcome-card" id="welcomeCard"><div class="welcome-orb">✳</div><div><h2>Начнём с идеи?</h2><p>Напиши сообщение или выбери подсказку ниже — покажем, как будет выглядеть работа с ИИ.</p></div></div>
+          <div class="messages" id="messages" aria-live="polite"></div>
+          <div class="suggestions" id="suggestions">
+            <button class="suggestion" data-prompt="Помоги придумать идею для моего проекта"><span class="suggestion-icon purple">✧</span><span><strong>Придумать идею</strong><small>От идеи к плану действий</small></span><b>↗</b></button>
+            <button class="suggestion" data-prompt="Составь пошаговый план создания сайта"><span class="suggestion-icon blue">⌘</span><span><strong>Создать сайт</strong><small>Структура, дизайн, код</small></span><b>↗</b></button>
+            <button class="suggestion" data-prompt="Помоги написать и улучшить текст"><span class="suggestion-icon orange">✎</span><span><strong>Написать текст</strong><small>Черновик и редактура</small></span><b>↗</b></button>
+            <button class="suggestion" data-prompt="Разбей мою цель на понятные задачи"><span class="suggestion-icon green">☷</span><span><strong>Разобрать задачу</strong><small>Понятные следующие шаги</small></span><b>↗</b></button>
+          </div>
+          <form class="composer" id="chatForm"><button type="button" class="attach-btn" id="attachButton" title="Файлы будут доступны позже">＋</button><textarea id="messageInput" rows="1" placeholder="Напиши сообщение… (Enter — отправить)" aria-label="Сообщение"></textarea><div class="composer-tools"><span>Демо-режим · ответы не генерируются настоящей моделью</span><button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button></div></form>
+          <div class="privacy-note"><span>♧</span> Твои тестовые чаты хранятся локально в этом браузере.</div>
+        </div>
+      </section>
+      <section class="page" id="page-compare">
+        <div class="page-header"><div class="eyebrow">СРАВНЕНИЕ МОДЕЛЕЙ</div><h1>Несколько ИИ, <span>одна задача.</span></h1><p>Отправь один запрос нескольким моделям и сравни подходы. Сейчас здесь демонстрационные ответы.</p></div>
+        <div class="compare-input"><textarea id="comparePrompt" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
+        <div class="compare-grid" id="compareGrid">
+          <article class="compare-card"><div class="compare-card-head"><div class="provider-icon openai">✳</div><div><strong>ChatGPT</strong><small>Универсальный помощник</small></div><span class="demo-chip">DEMO</span></div><div class="compare-answer muted-answer">Ответ появится после отправки запроса.</div></article>
+          <article class="compare-card"><div class="compare-card-head"><div class="provider-icon deepseek">◈</div><div><strong>DeepSeek</strong><small>Логика и программирование</small></div><span class="demo-chip">DEMO</span></div><div class="compare-answer muted-answer">Ответ появится после отправки запроса.</div></article>
+        </div>
+        <div class="info-banner"><span>✦</span><div><strong>Скоро — настоящая совместная работа</strong><p>После подключения API можно будет получать реальные ответы и передавать результат одной модели другой на проверку.</p></div></div>
+      </section>
+      <section class="page" id="page-projects">
+        <div class="page-header page-header-row"><div><div class="eyebrow">ТВОИ РАБОЧИЕ ПРОСТРАНСТВА</div><h1>Проекты <span>и идеи.</span></h1><p>Собирай чаты и задачи вокруг одной цели.</p></div><button class="primary-btn" id="addProject">＋ Новый проект</button></div>
+        <div class="project-grid" id="projectGrid">
+          <article class="project-card"><div class="project-icon purple-bg">⌘</div><span class="project-state">В работе</span><h3>AI Studio</h3><p>Единое пространство для работы с несколькими ИИ.</p><div class="project-meta"><span>◷ Сегодня</span><span>2 задачи</span></div><button class="text-action open-project" data-project="AI Studio">Открыть проект <span>→</span></button></article>
+          <article class="project-card"><div class="project-icon blue-bg">▣</div><span class="project-state quiet-state">Идея</span><h3>Фриланс-портфолио</h3><p>Сайт, примеры работ и первые заказы.</p><div class="project-meta"><span>◷ Недавно</span><span>3 задачи</span></div><button class="text-action open-project" data-project="Фриланс-портфолио">Открыть проект <span>→</span></button></article>
+          <button class="add-project-card" id="addProjectCard"><span>＋</span><strong>Создать проект</strong><small>Начни с чистого листа</small></button>
+        </div>
+      </section>
+      <section class="page" id="page-tasks">
+        <div class="page-header page-header-row"><div><div class="eyebrow">ПЛАНИРУЙ И ДЕЛАЙ</div><h1>Мои <span>задачи.</span></h1><p>Отмечай выполненное и держи фокус на главном.</p></div><button class="primary-btn" id="addTask">＋ Новая задача</button></div>
+        <div class="task-stats"><div><small>ВСЕГО</small><strong id="taskTotal">4</strong></div><div><small>В РАБОТЕ</small><strong id="taskActive">3</strong></div><div><small>ГОТОВО</small><strong id="taskDone">1</strong></div><div class="progress-stat"><div class="progress-label"><small>ОБЩИЙ ПРОГРЕСС</small><strong id="taskProgress">25%</strong></div><div class="progress-track"><i id="taskProgressBar"></i></div></div></div>
+        <div class="task-toolbar"><strong>Все задачи</strong><select id="taskFilter"><option value="all">Все статусы</option><option value="active">В работе</option><option value="done">Выполнено</option></select></div>
+        <div class="task-list" id="taskList"></div>
+      </section>
+      <section class="page" id="page-models">
+        <div class="page-header"><div class="eyebrow">ЕДИНОЕ ПОДКЛЮЧЕНИЕ</div><h1>Модели <span>и провайдеры.</span></h1><p>Настрой пространство для разных ИИ. Для настоящих подключений понадобится серверная часть.</p></div>
+        <div class="provider-list">
+          <article class="provider-card"><div class="provider-icon openai">✳</div><div class="provider-main"><div class="provider-title"><h3>OpenAI / ChatGPT</h3><span class="state-label">Не подключено</span></div><p>Чат, генерация идей, помощь с кодом и текстами.</p><small>Подключение через API · ключ должен храниться на сервере</small></div><button class="outline-btn provider-detail" data-provider="OpenAI / ChatGPT">Подробнее</button></article>
+          <article class="provider-card"><div class="provider-icon deepseek">◈</div><div class="provider-main"><div class="provider-title"><h3>DeepSeek</h3><span class="state-label">Не подключено</span></div><p>Альтернативная модель для рассуждений и программирования.</p><small>Подключение через API · ключ должен храниться на сервере</small></div><button class="outline-btn provider-detail" data-provider="DeepSeek">Подробнее</button></article>
+          <article class="provider-card"><div class="provider-icon future-icon">✧</div><div class="provider-main"><div class="provider-title"><h3>Другие модели</h3><span class="state-label planned">В планах</span></div><p>Добавим новых провайдеров через отдельные адаптеры, не ломая интерфейс.</p><small>Архитектура расширяется по мере необходимости</small></div><button class="outline-btn" id="futureProvider">В планах</button></article>
+        </div>
+        <div class="media-tools-heading"><div class="eyebrow">ТВОРЧЕСКИЕ ИНСТРУМЕНТЫ</div><h2>Фото, видео <span>и аудио.</span></h2><p>Три дополнительных сервиса для творческих задач.</p></div>
+        <div class="media-models" id="mediaModels">
+          <article class="media-model-card"><div class="media-model-art image-art">✦</div><h3>Stability AI — Фото</h3><p>Генерация изображений по текстовым описаниям и визуальным идеям.</p><small>Stability AI API</small><label class="api-key-label" for="apiKeyImage">API-ключ</label><input class="provider-key" id="apiKeyImage" type="password" autocomplete="off" placeholder="Ключ Stability AI"><div class="provider-actions"><button class="outline-btn key-toggle" data-target="apiKeyImage" type="button">Показать</button><button class="outline-btn key-check" data-target="apiKeyImage" type="button">Проверить</button></div><div class="connect-state">API не подключён</div></article>
+          <article class="media-model-card"><div class="media-model-art video-art">▶</div><h3>Runway — Видео</h3><p>Создание видеосцен и коротких роликов на основе текста или изображений.</p><small>Runway API</small><label class="api-key-label" for="apiKeyVideo">API-ключ</label><input class="provider-key" id="apiKeyVideo" type="password" autocomplete="off" placeholder="Ключ Runway"><div class="provider-actions"><button class="outline-btn key-toggle" data-target="apiKeyVideo" type="button">Показать</button><button class="outline-btn key-check" data-target="apiKeyVideo" type="button">Проверить</button></div><div class="connect-state">API не подключён</div></article>
+          <article class="media-model-card"><div class="media-model-art audio-art">♫</div><h3>ElevenLabs — Аудио</h3><p>Озвучивание текста, синтез речи и голосовые проекты.</p><small>ElevenLabs API</small><label class="api-key-label" for="apiKeyAudio">API-ключ</label><input class="provider-key" id="apiKeyAudio" type="password" autocomplete="off" placeholder="Ключ ElevenLabs"><div class="provider-actions"><button class="outline-btn key-toggle" data-target="apiKeyAudio" type="button">Показать</button><button class="outline-btn key-check" data-target="apiKeyAudio" type="button">Проверить</button></div><div class="connect-state">API не подключён</div></article>
+        </div>
+        <div class="install-banner"><div><strong>Установить AI Studio</strong><p>Добавь приложение на главный экран телефона или компьютера.</p></div><button class="install-app-btn" id="installInline" type="button">↓ Установить приложение</button></div>
+        <div class="security-note"><span>♧</span><div><strong>Безопасность прежде всего</strong><p>Поля ключей — только интерфейс. Не вводи настоящие секретные ключи на опубликованном сайте: для реального API требуется сервер.</p></div></div>
+        <div class="settings-card"><div><h3>Настройки интерфейса</h3><p>Выбери удобный вид рабочего пространства.</p></div><label class="setting-row"><span><strong>Компактный режим</strong><small>Меньше отступов в списках и карточках</small></span><input type="checkbox" id="compactToggle"></label><label class="setting-row"><span><strong>Подтверждать очистку истории</strong><small>Показывать подтверждение перед удалением</small></span><input type="checkbox" id="confirmClear" checked></label></div>
+      </section>
+      <footer class="app-footer"><span>✳ AI Studio</span><span>Прототип · версия 0.2</span><button id="feedbackButton">Оставить заметку ↗</button></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="appDialog"><form method="dialog" class="dialog-form"><button class="dialog-close" aria-label="Закрыть">×</button><div class="eyebrow" id="dialogEyebrow">AI STUDIO</div><h2 id="dialogTitle">Заголовок</h2><p id="dialogText">Текст</p><div id="dialogFields"></div><div class="dialog-actions"><button class="outline-btn" value="cancel">Отмена</button><button class="primary-btn" id="dialogConfirm" value="default">Продолжить</button></div></form></dialog>
+  <script src="app.js"></script>
+  <script src="enhancements.js"></script>
+</body>
+</html>
