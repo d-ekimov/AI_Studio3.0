@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0b0913">
   <title>Аккаунт — AI Studio</title>
+
   <style>
     :root {
       color-scheme: dark;
       --bg: #0b0913;
-      --panel: rgba(24, 19, 39, .94);
+      --panel: rgba(24, 19, 39, .96);
       --purple: #9b72ff;
-      --pink: #d17aff;
       --text: #f5f1ff;
       --muted: #a39ab8;
-      --border: rgba(190, 160, 255, .17);
+      --border: rgba(190, 160, 255, .2);
     }
 
     * { box-sizing: border-box; }
@@ -32,6 +32,8 @@
         radial-gradient(ellipse at 90% 85%, #241448 0, transparent 38%),
         var(--bg);
     }
+
+    button, input { font: inherit; }
 
     .card {
       width: 100%;
@@ -71,11 +73,20 @@
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 2px;
-      text-transform: uppercase;
     }
 
-    h1 { margin: 10px 0 8px; font-size: 29px; letter-spacing: -.7px; }
-    .description { margin: 0 0 24px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    h1 {
+      margin: 10px 0 8px;
+      font-size: 29px;
+      letter-spacing: -.7px;
+    }
+
+    .description {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
 
     .tabs {
       display: grid;
@@ -105,7 +116,14 @@
     }
 
     .field { display: block; margin-bottom: 16px; }
-    .field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+    .field[hidden] { display: none; }
+
+    .field-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
 
     .input-wrap {
       display: flex;
@@ -143,7 +161,7 @@
       margin: 0 0 20px;
     }
 
-    .text-button {
+    .text-button, .back {
       padding: 0;
       border: 0;
       background: transparent;
@@ -172,6 +190,11 @@
       box-shadow: 0 8px 22px #7c4bd533;
     }
 
+    .primary:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+
     .google {
       margin-top: 13px;
       border: 1px solid var(--border);
@@ -179,7 +202,11 @@
       background: #ffffff06;
     }
 
-    .google-mark { font-size: 19px; font-weight: 800; color: #c9b2ff; }
+    .google-mark {
+      font-size: 19px;
+      font-weight: 800;
+      color: #c9b2ff;
+    }
 
     .separator {
       display: flex;
@@ -203,24 +230,36 @@
       border: 1px solid #b99aff20;
       border-radius: 11px;
       background: #a77aff0a;
-      color: #bdb2d1;
-      font-size: 11px;
+      color: #c8bddb;
+      font-size: 12px;
       line-height: 1.6;
       text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .notice.success {
+      border-color: #285543;
+      background: #12251e;
+      color: #9ce8c2;
+    }
+
+    .notice.error {
+      border-color: #713747;
+      background: #29151d;
+      color: #ffb7c7;
     }
 
     .back {
       display: block;
       margin: 22px auto 0;
-      border: 0;
-      background: transparent;
       color: var(--muted);
       font-size: 13px;
-      cursor: pointer;
     }
 
-    .back:hover, .text-button:hover { color: white; }
-    button:focus-visible { outline: 2px solid #c5aaff; outline-offset: 3px; }
+    button:focus-visible {
+      outline: 2px solid #c5aaff;
+      outline-offset: 3px;
+    }
 
     @media (max-width: 380px) {
       .card { padding: 23px 19px; }
@@ -228,6 +267,7 @@
     }
   </style>
 </head>
+
 <body>
   <main class="card">
     <div class="brand">
@@ -239,20 +279,33 @@
     </div>
 
     <div class="eyebrow">ТВОЁ ПРОСТРАНСТВО</div>
+
     <h1 id="heading">С возвращением</h1>
-    <p class="description" id="description">Войди, чтобы продолжить работу с любимыми AI-инструментами.</p>
+
+    <p class="description" id="description">
+      Войди, чтобы продолжить работу с любимыми AI-инструментами.
+    </p>
 
     <div class="tabs" role="tablist" aria-label="Тип аккаунта">
-      <button class="tab active" id="loginTab" type="button" role="tab" aria-selected="true">Вход</button>
-      <button class="tab" id="registerTab" type="button" role="tab" aria-selected="false">Регистрация</button>
+      <button class="tab active" id="loginTab"
+        type="button" role="tab" aria-selected="true">
+        Вход
+      </button>
+
+      <button class="tab" id="registerTab"
+        type="button" role="tab" aria-selected="false">
+        Регистрация
+      </button>
     </div>
 
-    <form id="authForm" autocomplete="off">
+    <form id="authForm">
       <label class="field" id="nameField" hidden>
         <span class="field-label">Имя</span>
         <span class="input-wrap">
           <span aria-hidden="true">✦</span>
-          <input type="text" name="demo-name" placeholder="Как тебя зовут?" disabled>
+          <input id="nameInput" type="text" name="name"
+            placeholder="Как тебя зовут?"
+            maxlength="50" autocomplete="name">
         </span>
       </label>
 
@@ -260,7 +313,9 @@
         <span class="field-label">Электронная почта</span>
         <span class="input-wrap">
           <span aria-hidden="true">✉</span>
-          <input type="email" name="demo-email" placeholder="you@example.com" disabled>
+          <input id="emailInput" type="email" name="email"
+            placeholder="you@example.com"
+            maxlength="254" autocomplete="email" required>
         </span>
       </label>
 
@@ -268,15 +323,21 @@
         <span class="field-label">Пароль</span>
         <span class="input-wrap">
           <span aria-hidden="true">⌑</span>
-          <input type="password" name="demo-password" placeholder="••••••••" disabled>
+          <input id="passwordInput" type="password"
+            name="password" placeholder="Введи пароль"
+            autocomplete="current-password" required>
         </span>
       </label>
 
       <div class="options" id="forgotRow">
-        <button class="text-button" type="button" id="forgotButton">Забыли пароль?</button>
+        <button class="text-button" type="button" id="forgotButton">
+          Забыли пароль?
+        </button>
       </div>
 
-      <button class="primary" type="submit" id="submitButton">Войти в аккаунт <span>→</span></button>
+      <button class="primary" type="submit" id="submitButton">
+        Войти в аккаунт <span>→</span>
+      </button>
     </form>
 
     <div class="separator">ИЛИ ПРОДОЛЖИТЬ С</div>
@@ -286,63 +347,160 @@
       Продолжить с Google
     </button>
 
-    <div class="notice" id="notice" role="status">
-      Демо-дизайн: авторизация ещё не подключена. Поля отключены, данные не отправляются и не сохраняются.
+    <div class="notice" id="notice" role="status" aria-live="polite">
+      Демонстрационный режим. Настоящая авторизация ещё не подключена.
+      Не используй настоящий пароль.
     </div>
 
-    <button class="back" id="backButton" type="button">← Вернуться в AI Studio</button>
+    <button class="back" id="backButton" type="button">
+      ← Вернуться в AI Studio
+    </button>
   </main>
 
   <script>
     const loginTab = document.getElementById("loginTab");
     const registerTab = document.getElementById("registerTab");
     const nameField = document.getElementById("nameField");
+    const nameInput = document.getElementById("nameInput");
+    const emailInput = document.getElementById("emailInput");
+    const passwordInput = document.getElementById("passwordInput");
     const heading = document.getElementById("heading");
     const description = document.getElementById("description");
     const submitButton = document.getElementById("submitButton");
     const forgotRow = document.getElementById("forgotRow");
     const notice = document.getElementById("notice");
+    const authForm = document.getElementById("authForm");
+
+    let currentMode = "login";
+
+    function showNotice(text, type = "") {
+      notice.textContent = text;
+      notice.className = "notice" + (type ? " " + type : "");
+    }
+
+    function getSavedProfile() {
+      try {
+        const saved = localStorage.getItem("aiStudioProfile");
+        return saved ? JSON.parse(saved) : null;
+      } catch (error) {
+        return null;
+      }
+    }
 
     function setMode(mode) {
+      currentMode = mode;
       const registering = mode === "register";
 
       loginTab.classList.toggle("active", !registering);
       registerTab.classList.toggle("active", registering);
+
       loginTab.setAttribute("aria-selected", String(!registering));
       registerTab.setAttribute("aria-selected", String(registering));
 
       nameField.hidden = !registering;
-      heading.textContent = registering ? "Создай аккаунт" : "С возвращением";
+      nameInput.required = registering;
+
+      passwordInput.autocomplete = registering
+        ? "new-password"
+        : "current-password";
+
+      heading.textContent = registering
+        ? "Создай аккаунт"
+        : "С возвращением";
+
       description.textContent = registering
-        ? "Твоё пространство для работы с AI начинается здесь."
+        ? "Заполни данные, чтобы продолжить."
         : "Войди, чтобы продолжить работу с любимыми AI-инструментами.";
+
       submitButton.innerHTML = registering
-        ? "Создать аккаунт <span>→</span>"
-        : "Войти в аккаунт <span>→</span>";
+        ? 'Создать аккаунт <span>→</span>'
+        : 'Войти в аккаунт <span>→</span>';
+
       forgotRow.hidden = registering;
-      notice.textContent =
-        "Демо-дизайн: авторизация ещё не подключена. Поля отключены, данные не отправляются и не сохраняются.";
+
+      showNotice(
+        "Демонстрационный режим. Настоящая авторизация ещё не подключена. Не используй настоящий пароль."
+      );
     }
 
     loginTab.addEventListener("click", () => setMode("login"));
     registerTab.addEventListener("click", () => setMode("register"));
 
-    document.getElementById("authForm").addEventListener("submit", event => {
+    authForm.addEventListener("submit", function(event) {
       event.preventDefault();
-      notice.textContent = "Это только макет. Настоящий вход пока не подключён.";
+
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      if (!email || !password || (currentMode === "register" && !name)) {
+        showNotice("Заполни все обязательные поля.", "error");
+        return;
+      }
+
+      if (currentMode === "register") {
+        const profile = {
+          name: name,
+          email: email
+        };
+
+        try {
+          localStorage.setItem("aiStudioProfile", JSON.stringify(profile));
+          showNotice("Данные сохранены. Открываем профиль…", "success");
+          window.location.href = "profile.html";
+        } catch (error) {
+          showNotice(
+            "Браузер не разрешил сохранить данные. Проверь настройки браузера.",
+            "error"
+          );
+        }
+
+        return;
+      }
+
+      const profile = getSavedProfile();
+
+      if (!profile || !profile.email) {
+        showNotice(
+          "Демо-профиль не найден. Перейди во вкладку «Регистрация» и создай его.",
+          "error"
+        );
+        return;
+      }
+
+      if (profile.email.toLowerCase() !== email) {
+        showNotice(
+          "Этот e-mail не совпадает с демо-профилем на данном устройстве.",
+          "error"
+        );
+        return;
+      }
+
+      showNotice(
+        "E-mail совпадает. В демо-режиме пароль не проверяется. Открываем профиль…",
+        "success"
+      );
+
+      window.location.href = "profile.html";
     });
 
     document.getElementById("googleButton").addEventListener("click", () => {
-      notice.textContent = "Вход через Google пока не подключён. Кнопка демонстрационная.";
+      showNotice(
+        "Вход через Google пока не подключён. Для него потребуется настроить сервис авторизации."
+      );
     });
 
     document.getElementById("forgotButton").addEventListener("click", () => {
-      notice.textContent = "Восстановление пароля подключим вместе с настоящей авторизацией.";
+      showNotice(
+        "Восстановление пароля станет доступно после подключения настоящей авторизации."
+      );
     });
 
     document.getElementById("backButton").addEventListener("click", () => {
       window.location.href = "index.html";
     });
+
+    setMode("login");
   </script>
 </body>
 </html>
