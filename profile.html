@@ -15,13 +15,30 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
   window.aiStudioSupabase = supabase;
 
-  async function checkSession() {
-    const { data, error } = await supabase.auth.getSession();
+  
+async function checkSession() {
+  const { data, error } = await supabase.auth.getSession();
 
-    if (error || !data.session) {
-      window.location.replace("auth.html");
-    }
+  if (error || !data.session) {
+    window.location.replace("auth.html");
+    return;
   }
+
+  const { data: assuranceData, error: assuranceError } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  if (assuranceError) {
+    window.location.replace("auth.html");
+    return;
+  }
+
+  if (
+    assuranceData.nextLevel === "aal2" &&
+    assuranceData.currentLevel !== "aal2"
+  ) {
+    window.location.replace("auth.html");
+  }
+}
 
   checkSession();
   window.addEventListener("pageshow", checkSession);
