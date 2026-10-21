@@ -1,4 +1,17 @@
-/* Дополнения AI Studio: старый дизайн не переписываем */
+/* Исправление отображения истории чатов на телефоне */
+@media (max-width: 760px) {
+  .history-list {
+    flex: 1 1 auto;
+    min-height: 80px;
+    overflow-y: auto;
+  }
+
+  .sidebar-bottom {
+    position: static;
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+}/* Дополнения AI Studio: старый дизайн не переписываем */
 .install-app-btn{border:1px solid #39334d;background:linear-gradient(135deg,#302640,#1b1927);color:#e4d9ff;border-radius:9px;padding:7px 10px;font-size:10px;font-weight:700;white-space:nowrap}
 .install-app-btn:hover{border-color:#a78bfa}.install-app-btn[hidden]{display:none}
 .media-tools-heading{margin:24px 0 10px}.media-tools-heading h2{font:800 19px Manrope,sans-serif;margin:7px 0}.media-tools-heading h2 span{color:#b8a0ff}.media-tools-heading p{font-size:11px;color:var(--muted);margin:4px 0}
