@@ -347,6 +347,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
     activeChatId = null;
     renderHistory();
+    toast("Чатов в меню: " + document.querySelectorAll("#historyList .history-item").length);
     renderChat();
 
   } catch (error) {
