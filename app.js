@@ -17,8 +17,9 @@
   ];
   const read = (key, fallback) => { try { const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; } catch { return fallback; } };
   const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
-  let chats = read("aistudio_chats", []);
-  let activeChatId = null;
+  let chats = [];
+let activeChatId = null;
+let currentUser = null;
   let tasks = read("aistudio_tasks", defaultTasks);
   let projects = read("aistudio_projects", [
     {name:"AI Studio",desc:"Единое пространство для работы с несколькими ИИ.",state:"В работе",icon:"⌘",color:"purple-bg",tasks:2},
@@ -54,14 +55,16 @@
     if(c) c.messages.forEach(m=>{
       const row=document.createElement("div");row.className="message "+(m.role==="user"?"user":"assistant");
       const av=document.createElement("div");av.className="message-avatar";av.textContent=m.role==="user"?"D":"✳";
-      const content=document.createElement("div");content.className="message-content";content.textContent=m.text;
+      const content=document.createElement("div");
+content.className="message-content";
+content.textContent=m.content ?? m.text ?? "";
       if(m.role!=="user"){const small=document.createElement("small");small.textContent=m.model||modelName();content.appendChild(small);}
       row.append(av,content);box.appendChild(row);
     });
     box.scrollTop=box.scrollHeight;
   };
-  const persistChats=()=>{save("aistudio_chats",chats);renderHistory();};
-  const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
+  const persistChats=()=>{renderHistory();};
+const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
   $("#newChat").addEventListener("click",newChat);
   $("#modelSelect").addEventListener("change", () => {
   const val = $("#modelSelect").value;
@@ -94,21 +97,138 @@
     if(p.includes("иде"))return intro+"\n\nМожно начать с трёх вариантов: простой продукт для быстрого запуска, инструмент для конкретной аудитории или сервис, который автоматизирует повторяющуюся задачу. Для выбора сравним пользу, сложность реализации и время на первый прототип.";
     return intro+"\n\nЯ бы предложил сначала уточнить желаемый результат, затем выделить главные ограничения и составить короткий план. После этого можно переходить к конкретным действиям.\n\nНапоминание: сейчас это демонстрационный ответ, а не ответ настоящей языковой модели.";
   };
-  const sendMessage=(text)=>{
-    text=(text||"").trim();if(!text)return;
-    if(!activeChatId){activeChatId="c"+Date.now();chats.push({id:activeChatId,title:text.length>34?text.slice(0,34)+"…":text,messages:[]});}
-    const c=currentChat();c.messages.push({role:"user",text});
-    const selected=$("#modelSelect").value;c.messages.push({role:"assistant",text:demoAnswer(text,selected),model:modelName()});
-    persistChats();renderChat();$("#messageInput").value="";$("#messageInput").style.height="auto";
-  };
+  const sendMessage = async (text) => {
+  text = (text || "").trim();
+  if (!text) return;
+
+  if (!currentUser) {
+    toast("Войди в аккаунт, чтобы пользоваться чатами.");
+    window.location.href = "auth.html";
+    return;
+  }
+
+  const selected = $("#modelSelect").value;
+  let c = currentChat();
+
+  if (!c) {
+    const title = text.length > 34
+      ? text.slice(0, 34) + "…"
+      : text;
+
+    const { data, error } = await supabase
+      .from("ai_chats")
+      .insert({
+        user_id: currentUser.id,
+        title: title,
+        model: selected
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Ошибка создания чата:", error);
+      toast("Не удалось создать чат. Попробуй ещё раз.");
+      return;
+    }
+
+    c = {
+      id: data.id,
+      title: data.title,
+      model: data.model,
+      messages: []
+    };
+
+    chats.unshift(c);
+    activeChatId = c.id;
+  }
+
+  const answer = demoAnswer(text, selected);
+
+  const { error: messageError } = await supabase
+    .from("ai_messages")
+    .insert([
+      {
+        chat_id: c.id,
+        role: "user",
+        content: text
+      },
+      {
+        chat_id: c.id,
+        role: "assistant",
+        content: answer
+      }
+    ]);
+
+  if (messageError) {
+    console.error("Ошибка сохранения сообщений:", messageError);
+    toast("Не удалось сохранить сообщения.");
+    return;
+  }
+
+  c.messages.push(
+    { role: "user", content: text },
+    { role: "assistant", content: answer, model: modelName() }
+  );
+
+  const { error: updateError } = await supabase
+    .from("ai_chats")
+    .update({
+      updated_at: new Date().toISOString(),
+      model: selected
+    })
+    .eq("id", c.id);
+
+  if (updateError) {
+    console.error("Ошибка обновления чата:", updateError);
+  }
+
+  persistChats();
+  renderChat();
+
+  $("#messageInput").value = "";
+  $("#messageInput").style.height = "auto";
+};
   $("#chatForm").addEventListener("submit",e=>{e.preventDefault();sendMessage($("#messageInput").value);});
   $("#messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage(e.target.value);}});
   $$(".suggestion").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));
   $("#attachButton").addEventListener("click",()=>toast("Загрузка файлов появится после следующего этапа разработки."));
-  $("#clearHistory").addEventListener("click",()=>{
-    const clear=()=>{chats=[];activeChatId=null;persistChats();renderChat();toast("История чатов очищена.");};
-    if($("#confirmClear").checked)openDialog("Очистить историю?","Все локальные тестовые чаты будут удалены из этого браузера.","Очистить",clear);else clear();
-  });
+  $("#clearHistory").addEventListener("click", () => {
+  const clear = async () => {
+    if (!currentUser) {
+      toast("Сначала войди в аккаунт.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("ai_chats")
+      .delete()
+      .eq("user_id", currentUser.id);
+
+    if (error) {
+      console.error("Ошибка очистки истории:", error);
+      toast("Не удалось очистить историю.");
+      return;
+    }
+
+    chats = [];
+    activeChatId = null;
+
+    persistChats();
+    renderChat();
+    toast("История чатов очищена.");
+  };
+
+  if ($("#confirmClear").checked) {
+    openDialog(
+      "Очистить историю?",
+      "Все твои чаты будут удалены из аккаунта.",
+      "Очистить",
+      clear
+    );
+  } else {
+    clear();
+  }
+});
   const compareReply=(p,model)=>model==="ChatGPT"?"Подход: начать с пользователя и простоты.\n\n1. Выделить главную ценность.\n2. Предложить ясный и запоминающийся вариант.\n3. Проверить, легко ли объяснить идею одной фразой.\n\nПример: «Одно пространство. Все твои ИИ.»":"Подход: сначала задать критерии и сравнить варианты.\n\n1. Определить аудиторию и задачу.\n2. Создать 3–5 вариантов.\n3. Оценить понятность, отличие и масштабируемость.\n\nЗапрос: «"+p.slice(0,100)+"»\n\nЭто пример структуры ответа, не реальный ответ DeepSeek.";
   $("#compareRun").addEventListener("click",()=>{
     const p=$("#comparePrompt").value.trim();if(!p){toast("Сначала напиши запрос для сравнения.");$("#comparePrompt").focus();return;}
@@ -169,6 +289,71 @@
     ? "profile.html"
     : "auth.html";
 });
+  async function initChats() {
+  try {
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    const session = sessionData.session;
+
+    if (!session || !session.user) {
+      window.location.href = "auth.html";
+      return;
+    }
+
+    currentUser = session.user;
+
+    const { data: chatRows, error: chatError } = await supabase
+      .from("ai_chats")
+      .select("id, title, model, updated_at")
+      .eq("user_id", currentUser.id)
+      .order("updated_at", { ascending: false });
+
+    if (chatError) throw chatError;
+
+    const chatIds = (chatRows || []).map(chat => chat.id);
+    let messageRows = [];
+
+    if (chatIds.length > 0) {
+      const { data, error } = await supabase
+        .from("ai_messages")
+        .select("id, chat_id, role, content, created_at")
+        .in("chat_id", chatIds)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      messageRows = data || [];
+    }
+
+    chats = (chatRows || []).map(chat => ({
+      ...chat,
+      messages: messageRows
+        .filter(message => message.chat_id === chat.id)
+        .map(message => ({
+          role: message.role,
+          content: message.content,
+          model: chat.model === "deepseek"
+            ? "DeepSeek · Demo"
+            : chat.model === "future"
+              ? "Будущая модель · Demo"
+              : "ChatGPT · Demo"
+        }))
+    }));
+
+    activeChatId = null;
+    renderHistory();
+    renderChat();
+
+  } catch (error) {
+    console.error("Ошибка загрузки чатов:", error);
+    toast("Не удалось загрузить чаты. Проверь подключение к Supabase.");
+  }
+  }
   document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();newChat();}});
-  renderHistory();renderChat();renderProjects();renderTasks();
+  renderProjects();
+renderTasks();
+initChats();
 })();
