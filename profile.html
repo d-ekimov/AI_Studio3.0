@@ -1332,6 +1332,20 @@ async function checkSession() {
           </button>
         </section>
       </section>
+        
+<section class="card">
+  <h2 class="card-title">Завершить все сеансы</h2>
+  <p class="card-description">
+    Завершить сеансы аккаунта на всех устройствах.
+  </p>
+
+  <button class="danger-button" id="logoutAllButton" type="button">
+    Выйти на всех устройствах
+  </button>
+
+  <div class="message" id="logoutAllMessage"
+       role="status" aria-live="polite"></div>
+</section>
 
       <!-- ТАРИФЫ -->
       <section class="page" id="page-plans">
@@ -2351,6 +2365,49 @@ $("#logoutButton").addEventListener("click", async () => {
   }
 });
 
+    
+$("#logoutAllButton").addEventListener("click", async () => {
+  const button = $("#logoutAllButton");
+  const message = $("#logoutAllMessage");
+  const supabase = window.aiStudioSupabase;
+
+  if (!supabase) {
+    showMessage(
+      message,
+      "Подключение к авторизации не готово. Обнови страницу.",
+      true
+    );
+    return;
+  }
+
+  if (!window.confirm(
+    "Выйти из аккаунта на всех устройствах?"
+  )) {
+    return;
+  }
+
+  button.disabled = true;
+  showMessage(message, "Завершаю все сеансы...");
+
+  try {
+    const { error } = await supabase.auth.signOut({
+      scope: "global"
+    });
+
+    if (error) throw error;
+
+    window.location.replace("auth.html");
+  } catch (error) {
+    console.error("Ошибка выхода со всех устройств:", error);
+    showMessage(
+      message,
+      error.message || "Не удалось завершить все сеансы.",
+      true
+    );
+  } finally {
+    button.disabled = false;
+  }
+});
 
     async function syncAvatarFromAccount() {
       try {
