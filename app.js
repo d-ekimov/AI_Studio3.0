@@ -304,8 +304,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }
 
     currentUser = session.user;
-    toast("ID аккаунта: " + currentUser.id.slice(0, 8));
-
+    
     const { data: chatRows, error: chatError } = await supabase
       .from("ai_chats")
       .select("id, title, model, updated_at")
@@ -313,7 +312,6 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       .order("updated_at", { ascending: false });
 
     if (chatError) throw chatError;
-    toast("Загружено чатов: " + (chatRows || []).length);
 
     const chatIds = (chatRows || []).map(chat => chat.id);
     let messageRows = [];
@@ -347,7 +345,6 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
     activeChatId = null;
     renderHistory();
-    toast("Чатов в меню: " + document.querySelectorAll("#historyList .history-item").length);
     renderChat();
 
   } catch (error) {
