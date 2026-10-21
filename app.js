@@ -313,6 +313,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       .order("updated_at", { ascending: false });
 
     if (chatError) throw chatError;
+    toast("Загружено чатов: " + (chatRows || []).length);
 
     const chatIds = (chatRows || []).map(chat => chat.id);
     let messageRows = [];
