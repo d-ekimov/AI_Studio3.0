@@ -478,6 +478,8 @@ async function continueOrRequestMfa() {
     mfaChallengeId = challengeData.id;
 
     document.getElementById("loginMfaField").hidden = false;
+    emailInput.required = false;
+passwordInput.required = false;
     document.getElementById("loginMfaCode").required = true;
     document.getElementById("loginMfaCode").value = "";
 
