@@ -1858,7 +1858,7 @@ $("#removeAvatar").addEventListener("click", async () => {
     // Выход из демосессии без удаления профиля
 
     // Безопасность аккаунта: статус email и смена пароля
-    async function window.addEventListener("load", initSecuritySettings); {
+    async function initSecuritySettings() {
       const supabase = window.aiStudioSupabase;
       const emailElement = $("#securityEmail");
       const emailStatus = $("#emailStatus");
@@ -1972,7 +1972,7 @@ $("#removeAvatar").addEventListener("click", async () => {
       }
     });
 
-    initSecuritySettings();
+    window.addEventListener("load", initSecuritySettings);
     
 $("#logoutButton").addEventListener("click", async () => {
   try {
