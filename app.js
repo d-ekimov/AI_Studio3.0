@@ -1,6 +1,13 @@
 (() => {
   const $ = (s, root=document) => root.querySelector(s);
   const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+    const SUPABASE_URL = "https://zzjfceazpjpavnyyigek.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_uZhcc1D66aEzG5xqoe1jcg_Ts7NZI3V";
+
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
   const pageNames = {chat:"Чат", compare:"Несколько ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
   const defaultTasks = [
     {id:1,title:"Продумать структуру AI Studio",desc:"Определить основные разделы и переходы",done:true,tag:"Планирование"},
