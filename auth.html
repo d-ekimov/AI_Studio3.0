@@ -544,9 +544,12 @@ authForm.addEventListener("submit", async (event) => {
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
 
-  if (!email || !password || (currentMode === "register" && !name)) {
-    showNotice("Заполни все обязательные поля.", "error");
-    return;
+  if (
+  !mfaChallengeId &&
+  (!email || !password || (currentMode === "register" && !name))
+) {
+  showNotice("Заполни все обязательные поля.", "error");
+  return;
   }
 
   setBusy(true);
