@@ -2111,6 +2111,7 @@ $("#logoutButton").addEventListener("click", async () => {
     // Начальная загрузка
     renderProfile();
     renderHistory();
+    initSecuritySettings();
 
     window.addEventListener("load", syncAvatarFromAccount);
     // Если пользователь вернулся на широком экране, закрываем мобильное меню
