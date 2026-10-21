@@ -564,6 +564,33 @@
       color: #66667a;
     }
 
+    .password-input-wrap {
+      position: relative;
+    }
+
+    .password-input-wrap input {
+      padding-right: 55px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      min-width: 38px;
+      min-height: 38px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #b8a0ff;
+      font-size: 19px;
+      cursor: pointer;
+    }
+
+    .toggle-password:hover {
+      background: #29213b;
+    }
+    
     .hint {
       margin-top: 8px;
       color: var(--muted);
@@ -1164,30 +1191,49 @@
           </p>
 
           <form id="passwordForm">
+            
             <div class="field">
               <label for="newPassword">Новый пароль</label>
-              <input
-                id="newPassword"
-                name="newPassword"
-                type="password"
-                minlength="8"
-                autocomplete="new-password"
-                placeholder="Не менее 8 символов"
-                required
-              >
+              <div class="password-input-wrap">
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  minlength="8"
+                  autocomplete="new-password"
+                  placeholder="Не менее 8 символов"
+                  required
+                >
+                <button
+                  class="toggle-password"
+                  type="button"
+                  data-toggle-password="newPassword"
+                  aria-label="Показать пароль"
+                  aria-pressed="false"
+                >👁</button>
+              </div>
             </div>
 
             <div class="field">
               <label for="confirmPassword">Повтори новый пароль</label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                minlength="8"
-                autocomplete="new-password"
-                placeholder="Повтори новый пароль"
-                required
-              >
+              <div class="password-input-wrap">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  minlength="8"
+                  autocomplete="new-password"
+                  placeholder="Повтори новый пароль"
+                  required
+                >
+                <button
+                  class="toggle-password"
+                  type="button"
+                  data-toggle-password="confirmPassword"
+                  aria-label="Показать пароль"
+                  aria-pressed="false"
+                >👁</button>
+              </div>
             </div>
 
             <button class="primary-button" id="changePasswordButton"
@@ -1904,6 +1950,27 @@ $("#removeAvatar").addEventListener("click", async () => {
       }
     }
 
+    // Показать или скрыть пароль
+    document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(
+          button.dataset.togglePassword
+        );
+
+        if (!input) return;
+
+        const showPassword = input.type === "password";
+        input.type = showPassword ? "text" : "password";
+
+        button.textContent = showPassword ? "🙈" : "👁";
+        button.setAttribute(
+          "aria-label",
+          showPassword ? "Скрыть пароль" : "Показать пароль"
+        );
+        button.setAttribute("aria-pressed", String(showPassword));
+      });
+    });
+    
     $("#passwordForm").addEventListener("submit", async (event) => {
       event.preventDefault();
 
