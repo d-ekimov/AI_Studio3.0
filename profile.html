@@ -2013,6 +2013,212 @@ $("#removeAvatar").addEventListener("click", async () => {
       }
     }
 
+    // Двухфакторная аутентификация Supabase MFA
+    async function initMfaSettings() {
+      const supabase = window.aiStudioSupabase;
+      const status = $("#mfaStatus");
+      const message = $("#mfaMessage");
+      const setup = $("#mfaSetup");
+      const enableButton = $("#mfaEnableButton");
+      const disableButton = $("#mfaDisableButton");
+
+      if (!supabase) {
+        status.textContent = "Нет подключения к Supabase";
+        enableButton.disabled = true;
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) throw error;
+
+        const verifiedFactors = (data.totp || []).filter(
+          (factor) => factor.status === "verified"
+        );
+
+        if (verifiedFactors.length > 0) {
+          status.textContent = "Включена";
+          enableButton.hidden = true;
+          disableButton.hidden = false;
+          setup.hidden = true;
+        } else {
+          status.textContent = "Не включена";
+          enableButton.hidden = false;
+          disableButton.hidden = true;
+        }
+      } catch (error) {
+        status.textContent = "Не удалось проверить";
+        message.textContent =
+          error.message || "Не удалось проверить настройки 2FA.";
+      }
+    }
+
+    $("#mfaEnableButton").addEventListener("click", async () => {
+      const supabase = window.aiStudioSupabase;
+      const message = $("#mfaMessage");
+      const setup = $("#mfaSetup");
+      const enableButton = $("#mfaEnableButton");
+
+      if (!supabase) {
+        message.textContent = "Нет подключения к Supabase.";
+        return;
+      }
+
+      enableButton.disabled = true;
+      message.textContent = "Создаю настройку двухфакторной защиты...";
+
+      try {
+        const { data: factorsData, error: factorsError } =
+          await supabase.auth.mfa.listFactors();
+
+        if (factorsError) throw factorsError;
+
+        const verified = (factorsData.totp || []).find(
+          (factor) => factor.status === "verified"
+        );
+
+        if (verified) {
+          await initMfaSettings();
+          message.textContent = "Двухфакторная защита уже включена.";
+          return;
+        }
+
+        // Удаляем старые незавершённые попытки подключения.
+        for (const factor of (factorsData.all || [])) {
+          if (
+            factor.factor_type === "totp" &&
+            factor.status !== "verified"
+          ) {
+            const { error } = await supabase.auth.mfa.unenroll({
+              factorId: factor.id
+            });
+            if (error) throw error;
+          }
+        }
+
+        const { data, error } = await supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: "AI Studio Authenticator"
+        });
+
+        if (error) throw error;
+
+        setup.dataset.factorId = data.id;
+        $("#mfaQrCode").innerHTML = data.totp.qr_code;
+        $("#mfaSecret").textContent =
+          "Секретный ключ: " + data.totp.secret;
+        $("#mfaVerifyCode").value = "";
+        setup.hidden = false;
+        enableButton.hidden = true;
+        message.textContent =
+          "Отсканируй QR-код приложением-аутентификатором и введи полученный код.";
+      } catch (error) {
+        console.error("Ошибка настройки MFA:", error);
+        message.textContent =
+          error.message || "Не удалось начать подключение 2FA.";
+      } finally {
+        enableButton.disabled = false;
+      }
+    });
+
+    $("#mfaVerifyButton").addEventListener("click", async () => {
+      const supabase = window.aiStudioSupabase;
+      const message = $("#mfaMessage");
+      const code = $("#mfaVerifyCode").value.trim();
+      const factorId = $("#mfaSetup").dataset.factorId;
+      const button = $("#mfaVerifyButton");
+
+      if (!supabase || !factorId) {
+        message.textContent = "Сначала нажми «Подключить 2FA».";
+        return;
+      }
+
+      if (!/^\d{6}$/.test(code)) {
+        message.textContent = "Введи правильный шестизначный код.";
+        return;
+      }
+
+      button.disabled = true;
+      message.textContent = "Проверяю код...";
+
+      try {
+        const { error } = await supabase.auth.mfa.challengeAndVerify({
+          factorId,
+          code
+        });
+
+        if (error) throw error;
+
+        $("#mfaSetup").hidden = true;
+        $("#mfaVerifyCode").value = "";
+        message.textContent =
+          "Двухфакторная защита подключена и подтверждена!";
+        await initMfaSettings();
+      } catch (error) {
+        console.error("Ошибка подтверждения MFA:", error);
+        message.textContent =
+          error.message || "Код не принят. Проверь его и попробуй снова.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    $("#mfaDisableButton").addEventListener("click", async () => {
+      const supabase = window.aiStudioSupabase;
+      const message = $("#mfaMessage");
+
+      if (!supabase) {
+        message.textContent = "Нет подключения к Supabase.";
+        return;
+      }
+
+      const confirmed = window.confirm(
+        "Отключить двухфакторную защиту аккаунта?"
+      );
+
+      if (!confirmed) return;
+
+      const button = $("#mfaDisableButton");
+      button.disabled = true;
+      message.textContent = "Отключаю двухфакторную защиту...";
+
+      try {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) throw error;
+
+        const factors = (data.totp || []).filter(
+          (factor) => factor.status === "verified"
+        );
+
+        if (factors.length === 0) {
+          await initMfaSettings();
+          message.textContent = "Подтверждённых факторов нет.";
+          return;
+        }
+
+        for (const factor of factors) {
+          const { error: unenrollError } =
+            await supabase.auth.mfa.unenroll({
+              factorId: factor.id
+            });
+
+          if (unenrollError) throw unenrollError;
+        }
+
+        $("#mfaSetup").hidden = true;
+        $("#mfaQrCode").textContent = "";
+        $("#mfaSecret").textContent = "";
+        message.textContent = "Двухфакторная защита отключена.";
+        await initMfaSettings();
+      } catch (error) {
+        console.error("Ошибка отключения MFA:", error);
+        message.textContent =
+          error.message || "Не удалось отключить 2FA.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+    
     // Показать или скрыть пароль
     document.querySelectorAll("[data-toggle-password]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -2105,7 +2311,7 @@ $("#removeAvatar").addEventListener("click", async () => {
     });
 
     window.addEventListener("load", initSecuritySettings);
-    
+    window.addEventListener("load", initMfaSettings);
 $("#logoutButton").addEventListener("click", async () => {
   try {
     const supabase = window.aiStudioSupabase;
