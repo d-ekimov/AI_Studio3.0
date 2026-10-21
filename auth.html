@@ -141,7 +141,10 @@
     }
 
     .input-wrap span { color: #9b8bb8; }
-    .password-toggle {
+.password-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   padding: 8px 2px;
   border: 0;
@@ -149,7 +152,7 @@
   color: #b9a0f5;
   font-size: 18px;
   cursor: pointer;
-    }
+}
 
     input {
       width: 100%;
@@ -332,13 +335,12 @@
         <span class="field-label">Пароль</span>
         <span class="input-wrap">
           <span aria-hidden="true">⌑</span>
-<
 <button class="password-toggle" id="togglePassword"
   type="button" aria-label="Показать пароль"
   aria-pressed="false">
-  <svg id="passwordEyeIcon" viewBox="0 0 24 24"
-    width="20" height="20" fill="none"
-    stroke="currentColor" stroke-width="1.8"
+  <svg xmlns="http://www.w3.org/2000/svg"
+    width="20" height="20" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" stroke-width="2"
     stroke-linecap="round" stroke-linejoin="round">
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/>
     <circle cx="12" cy="12" r="3"/>
@@ -390,6 +392,24 @@ const nameField = document.getElementById("nameField");
 const nameInput = document.getElementById("nameInput");
 const emailInput = document.getElementById("emailInput");
 const passwordInput = document.getElementById("passwordInput");
+const togglePassword = document.getElementById("togglePassword");
+
+togglePassword.addEventListener("click", () => {
+  const showPassword = passwordInput.type === "password";
+
+  passwordInput.type = showPassword ? "text" : "password";
+
+  togglePassword.innerHTML = showPassword
+    ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.5 10.5 0 0 1 12 5c5 0 9 5 10 7a13 13 0 0 1-3 3.5"/><path d="M6.6 6.6C4.4 8 2.8 10.2 2 12c1 2 5 7 10 7a10 10 0 0 0 4-.8"/></svg>'
+    : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+  togglePassword.setAttribute(
+    "aria-label",
+    showPassword ? "Скрыть пароль" : "Показать пароль"
+  );
+
+  togglePassword.setAttribute("aria-pressed", String(showPassword));
+});
 const heading = document.getElementById("heading");
 const description = document.getElementById("description");
 const submitButton = document.getElementById("submitButton");
