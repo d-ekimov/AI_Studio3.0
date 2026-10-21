@@ -1184,6 +1184,65 @@
                role="status" aria-live="polite"></div>
         </section>
 
+        <section class="card" id="mfaCard">
+          <h2 class="card-title">Двухфакторная аутентификация</h2>
+          <p class="card-description">
+            Дополнительная защита аккаунта с помощью приложения-аутентификатора.
+            При включении понадобится шестизначный код.
+          </p>
+
+          <div class="settings-row">
+            <div>
+              <strong>Статус защиты</strong>
+              <p id="mfaStatus">Проверяем настройки...</p>
+            </div>
+          </div>
+
+          <div id="mfaSetup" hidden>
+            <p class="card-description">
+              1. Открой Google Authenticator, Microsoft Authenticator
+              или 2FAS и добавь новый аккаунт.
+            </p>
+
+            <div id="mfaQrCode" style="margin:16px 0; overflow-wrap:anywhere;"></div>
+
+            <p class="card-description">
+              Если не получается отсканировать QR-код, используй секретный
+              ключ, который появится здесь.
+            </p>
+
+            <p id="mfaSecret" style="overflow-wrap:anywhere;"></p>
+
+            <div class="field">
+              <label for="mfaVerifyCode">Шестизначный код</label>
+              <input
+                id="mfaVerifyCode"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                placeholder="000000"
+              >
+            </div>
+
+            <button class="primary-button" id="mfaVerifyButton" type="button">
+              Подтвердить и включить 2FA
+            </button>
+          </div>
+
+          <div class="message" id="mfaMessage" role="status"
+               aria-live="polite"></div>
+
+          <button class="primary-button" id="mfaEnableButton" type="button">
+            Подключить 2FA
+          </button>
+
+          <button class="danger-button" id="mfaDisableButton" type="button" hidden>
+            Отключить 2FA
+          </button>
+        </section>
+        
         <section class="card">
           <h2 class="card-title">Смена пароля</h2>
           <p class="card-description" id="passwordHelp">
