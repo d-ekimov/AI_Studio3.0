@@ -335,17 +335,20 @@
         <span class="field-label">Пароль</span>
         <span class="input-wrap">
           <span aria-hidden="true">⌑</span>
-<button class="password-toggle" id="togglePassword"
-  type="button" aria-label="Показать пароль"
-  aria-pressed="false">
-  <svg xmlns="http://www.w3.org/2000/svg"
-    width="20" height="20" viewBox="0 0 24 24"
-    fill="none" stroke="currentColor" stroke-width="2"
-    stroke-linecap="round" stroke-linejoin="round">
-    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-</button>
+          <input id="passwordInput" type="password" name="password"
+            placeholder="Введи пароль"
+            minlength="8" autocomplete="current-password" required>
+          <button class="password-toggle" id="togglePassword"
+            type="button" aria-label="Показать пароль"
+            aria-pressed="false">
+            <svg xmlns="http://www.w3.org/2000/svg"
+              width="20" height="20" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
         </span>
       </label>
 
