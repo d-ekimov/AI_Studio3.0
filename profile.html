@@ -1388,8 +1388,8 @@
                 maxlength="254"
                 autocomplete="email"
               >
-              <p class="hint">
-                Email пока не подтверждается на сервере.
+              <p class="hint" id="emailVerificationHint">
+  Проверяем подтверждение почты...
               </p>
             </div>
 
@@ -1908,6 +1908,7 @@ $("#removeAvatar").addEventListener("click", async () => {
       const supabase = window.aiStudioSupabase;
       const emailElement = $("#securityEmail");
       const emailStatus = $("#emailStatus");
+      const emailHint = $("#emailVerificationHint");
       const passwordForm = $("#passwordForm");
       const passwordHelp = $("#passwordHelp");
       const passwordButton = $("#changePasswordButton");
@@ -1936,6 +1937,9 @@ $("#removeAvatar").addEventListener("click", async () => {
         emailStatus.textContent = user.email_confirmed_at
           ? "Подтверждён"
           : "Не подтверждён";
+        emailHint.textContent = user.email_confirmed_at
+  ? "Email подтверждён на сервере."
+  : "Email ещё не подтверждён. Проверь почту.";
 
         if (googleOnly) {
           passwordHelp.textContent =
