@@ -1130,6 +1130,7 @@
         </section>
       </section>
 
+      
       <!-- БЕЗОПАСНОСТЬ -->
       <section class="page" id="page-security">
         <header class="heading">
@@ -1138,59 +1139,74 @@
           <p>Настройки доступа и защита твоего профиля.</p>
         </header>
 
-        <div class="notice">
-          <strong>Авторизация пока демонстрационная</strong>
-          Сейчас профиль хранится в браузере. Для настоящей защиты нужны
-          серверная авторизация или подключённый сервис аккаунтов.
-          Не используй демонстрационный вход для защиты конфиденциальных данных.
-        </div>
-
         <section class="card">
-          <h2 class="card-title">Твой аккаунт</h2>
+          <h2 class="card-title">Статус аккаунта</h2>
           <p class="card-description">
-            Текущие возможности и статус безопасности.
+            Информация о твоём аккаунте и подтверждении электронной почты.
           </p>
 
           <div class="settings-row">
             <div>
-              <strong>Данные профиля</strong>
-              <p>Имя и email сохранены в браузере этого устройства.</p>
+              <strong>Электронная почта</strong>
+              <p id="securityEmail">Загружаю данные аккаунта...</p>
             </div>
-            <span class="badge">Локально</span>
+            <span class="badge" id="emailStatus">Проверка</span>
           </div>
 
-          <div class="settings-row">
-            <div>
-              <strong>Смена пароля</strong>
-              <p>Станет доступна после подключения настоящей авторизации.</p>
-            </div>
-            <span class="badge">Позже</span>
-          </div>
+          <div class="message" id="securityStatusMessage"
+               role="status" aria-live="polite"></div>
+        </section>
 
-          <div class="settings-row">
-            <div>
-              <strong>Подтверждение email</strong>
-              <p>Отправка писем и подтверждение адреса пока не подключены.</p>
-            </div>
-            <span class="badge">Позже</span>
-          </div>
+        <section class="card">
+          <h2 class="card-title">Смена пароля</h2>
+          <p class="card-description" id="passwordHelp">
+            Задай новый пароль для входа в аккаунт.
+          </p>
 
-          <div class="settings-row">
-            <div>
-              <strong>Двухфакторная защита</strong>
-              <p>Потребуется серверная система аккаунтов.</p>
+          <form id="passwordForm">
+            <div class="field">
+              <label for="newPassword">Новый пароль</label>
+              <input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="Не менее 8 символов"
+                required
+              >
             </div>
-            <span class="badge">Позже</span>
-          </div>
+
+            <div class="field">
+              <label for="confirmPassword">Повтори новый пароль</label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="Повтори новый пароль"
+                required
+              >
+            </div>
+
+            <button class="primary-button" id="changePasswordButton"
+                    type="submit">
+              Сохранить новый пароль
+            </button>
+
+            <div class="message" id="passwordMessage"
+                 role="status" aria-live="polite"></div>
+          </form>
         </section>
 
         <section class="card">
           <h2 class="card-title">Завершить сеанс</h2>
           <p class="card-description">
-            Вернись на страницу входа. Это не удаляет сохранённые данные профиля.
+            Выйти из аккаунта на этом устройстве.
           </p>
           <button class="danger-button" id="logoutButton" type="button">
-            Вернуться ко входу
+            Выйти из аккаунта
           </button>
         </section>
       </section>
@@ -1841,6 +1857,123 @@ $("#removeAvatar").addEventListener("click", async () => {
 
     // Выход из демосессии без удаления профиля
 
+    // Безопасность аккаунта: статус email и смена пароля
+    async function initSecuritySettings() {
+      const supabase = window.aiStudioSupabase;
+      const emailElement = $("#securityEmail");
+      const emailStatus = $("#emailStatus");
+      const passwordForm = $("#passwordForm");
+      const passwordHelp = $("#passwordHelp");
+      const passwordButton = $("#changePasswordButton");
+
+      if (!supabase) {
+        emailElement.textContent = "Нет подключения к Supabase";
+        emailStatus.textContent = "Ошибка";
+        passwordButton.disabled = true;
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (!data.user) throw new Error("Войди в аккаунт повторно.");
+
+        const user = data.user;
+        const providers = (user.identities || [])
+          .map((identity) => identity.provider);
+
+        const googleOnly =
+          providers.includes("google") &&
+          !providers.includes("email");
+
+        emailElement.textContent = user.email || "Email не указан";
+        emailStatus.textContent = user.email_confirmed_at
+          ? "Подтверждён"
+          : "Не подтверждён";
+
+        if (googleOnly) {
+          passwordHelp.textContent =
+            "Ты вошёл через Google. Управляй паролем в настройках своего аккаунта Google.";
+          passwordForm.hidden = true;
+        }
+      } catch (error) {
+        emailElement.textContent = "Не удалось загрузить данные";
+        emailStatus.textContent = "Ошибка";
+        $("#securityStatusMessage").textContent =
+          error.message || "Не удалось проверить аккаунт.";
+      }
+    }
+
+    $("#passwordForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const supabase = window.aiStudioSupabase;
+      const password = $("#newPassword").value;
+      const confirmation = $("#confirmPassword").value;
+      const message = $("#passwordMessage");
+      const button = $("#changePasswordButton");
+
+      if (!supabase) {
+        showMessage(message, "Нет подключения к Supabase.", true);
+        return;
+      }
+
+      if (password.length < 8) {
+        showMessage(message, "Пароль должен содержать не менее 8 символов.", true);
+        return;
+      }
+
+      if (password !== confirmation) {
+        showMessage(message, "Пароли не совпадают.", true);
+        return;
+      }
+
+      button.disabled = true;
+      showMessage(message, "Меняю пароль...");
+
+      try {
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
+
+        if (userError) throw userError;
+        if (!userData.user) throw new Error("Войди в аккаунт повторно.");
+
+        const providers = (userData.user.identities || [])
+          .map((identity) => identity.provider);
+
+        if (
+          providers.includes("google") &&
+          !providers.includes("email")
+        ) {
+          throw new Error(
+            "Для этого аккаунта пароль нужно менять в Google."
+          );
+        }
+
+        const { error } = await supabase.auth.updateUser({
+          password
+        });
+
+        if (error) throw error;
+
+        $("#newPassword").value = "";
+        $("#confirmPassword").value = "";
+
+        showMessage(message, "Пароль успешно изменён.");
+      } catch (error) {
+        console.error("Ошибка смены пароля:", error);
+        showMessage(
+          message,
+          error.message || "Не удалось изменить пароль.",
+          true
+        );
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    initSecuritySettings();
+    
 $("#logoutButton").addEventListener("click", async () => {
   try {
     const supabase = window.aiStudioSupabase;
