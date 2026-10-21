@@ -352,6 +352,21 @@
         </span>
       </label>
 
+      <label class="field" id="loginMfaField" hidden>
+        <span class="field-label">Код двухфакторной аутентификации</span>
+        <span class="input-wrap">
+          <input
+            id="loginMfaCode"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            placeholder="Введи код из приложения"
+          >
+        </span>
+      </label>
+  
       <div class="options" id="forgotRow">
         <button class="text-button" type="button" id="forgotButton">
           Забыли пароль?
@@ -426,6 +441,55 @@ let busy = false;
 const authUrl = window.location.origin + "/AI_Studio3.0/auth.html";
 const profileUrl = window.location.origin + "/AI_Studio3.0/profile.html";
 
+let mfaFactorId = null;
+let mfaChallengeId = null;
+
+async function continueOrRequestMfa() {
+  const { data: assuranceData, error: assuranceError } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  if (assuranceError) throw assuranceError;
+
+  if (
+    assuranceData.nextLevel === "aal2" &&
+    assuranceData.currentLevel !== "aal2"
+  ) {
+    const { data: factorsData, error: factorsError } =
+      await supabase.auth.mfa.listFactors();
+
+    if (factorsError) throw factorsError;
+
+    const factor = (factorsData.totp || []).find(
+      (item) => item.status === "verified"
+    );
+
+    if (!factor) {
+      throw new Error("Не найден подтверждённый фактор 2FA.");
+    }
+
+    const { data: challengeData, error: challengeError } =
+      await supabase.auth.mfa.challenge({
+        factorId: factor.id
+      });
+
+    if (challengeError) throw challengeError;
+
+    mfaFactorId = factor.id;
+    mfaChallengeId = challengeData.id;
+
+    document.getElementById("loginMfaField").hidden = false;
+    document.getElementById("loginMfaCode").required = true;
+    document.getElementById("loginMfaCode").value = "";
+
+    submitButton.innerHTML = "Подтвердить код →";
+    showNotice("Введи шестизначный код из приложения-аутентификатора.");
+    document.getElementById("loginMfaCode").focus();
+    return;
+  }
+
+  window.location.replace(profileUrl);
+}
+  
 async function redirectIfSignedIn() {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -501,6 +565,7 @@ authForm.addEventListener("submit", async (event) => {
 
   setBusy(true);
 
+  
   try {
     if (currentMode === "register") {
       const { data, error } = await supabase.auth.signUp({
@@ -515,7 +580,7 @@ authForm.addEventListener("submit", async (event) => {
       if (error) throw error;
 
       if (data.session) {
-        window.location.replace(profileUrl);
+        await continueOrRequestMfa();
         return;
       }
 
@@ -524,6 +589,26 @@ authForm.addEventListener("submit", async (event) => {
         "Аккаунт создан! Проверь почту и подтверди email, затем войди.",
         "success"
       );
+    } else if (mfaChallengeId) {
+      const code = document.getElementById("loginMfaCode").value.trim();
+
+      if (!/^\d{6}$/.test(code)) {
+        showNotice("Введи шестизначный код из приложения.", "error");
+        return;
+      }
+
+      const { error } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: mfaChallengeId,
+        code
+      });
+
+      if (error) throw error;
+
+      mfaFactorId = null;
+      mfaChallengeId = null;
+      await continueOrRequestMfa();
+      return;
     } else {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -532,7 +617,7 @@ authForm.addEventListener("submit", async (event) => {
 
       if (error) throw error;
 
-      window.location.replace(profileUrl);
+      await continueOrRequestMfa();
       return;
     }
   } catch (error) {
