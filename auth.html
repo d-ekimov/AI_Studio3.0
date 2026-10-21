@@ -141,6 +141,15 @@
     }
 
     .input-wrap span { color: #9b8bb8; }
+    .password-toggle {
+  flex: 0 0 auto;
+  padding: 8px 2px;
+  border: 0;
+  background: transparent;
+  color: #b9a0f5;
+  font-size: 18px;
+  cursor: pointer;
+    }
 
     input {
       width: 100%;
@@ -323,12 +332,18 @@
         <span class="field-label">Пароль</span>
         <span class="input-wrap">
           <span aria-hidden="true">⌑</span>
-<input id="passwordInput" type="password"
-  name="password" placeholder="Введи пароль"
-  autocomplete="current-password" required>
+<
 <button class="password-toggle" id="togglePassword"
   type="button" aria-label="Показать пароль"
-  aria-pressed="false">👁</button>
+  aria-pressed="false">
+  <svg id="passwordEyeIcon" viewBox="0 0 24 24"
+    width="20" height="20" fill="none"
+    stroke="currentColor" stroke-width="1.8"
+    stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+</button>
         </span>
       </label>
 
