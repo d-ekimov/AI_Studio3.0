@@ -42,7 +42,7 @@ let currentUser = null;
   const modelName = () => ({chatgpt:"ChatGPT · Demo",deepseek:"DeepSeek · Demo",future:"Будущая модель · Demo"}[$("#modelSelect").value] || "ChatGPT · Demo");
   const renderHistory = () => {
     const list=$("#historyList"); list.innerHTML="";
-    chats.slice().reverse().slice(0,12).forEach(c=>{
+    chats.slice(0,12).forEach(c=>{
       const b=document.createElement("button"); b.className="history-item"+(c.id===activeChatId?" selected":""); b.innerHTML="<span>◌</span><em></em>"; $("em",b).textContent=c.title;
       b.addEventListener("click",()=>{activeChatId=c.id;renderChat();renderHistory();go("chat");}); list.appendChild(b);
     });
