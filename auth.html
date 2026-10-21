@@ -490,20 +490,6 @@ async function continueOrRequestMfa() {
   window.location.replace(profileUrl);
 }
   
-async function redirectIfSignedIn() {
-  try {
-    const { data, error } = await supabase.auth.getSession();
-
-    if (!error && data.session) {
-      window.location.replace(profileUrl);
-    }
-  } catch (error) {
-    console.error("Ошибка проверки сессии:", error);
-  }
-}
-
-redirectIfSignedIn();
-  
 function showNotice(text, type = "") {
   notice.textContent = text;
   notice.className = "notice" + (type ? " " + type : "");
@@ -675,12 +661,16 @@ try {
   if (error) throw error;
 
   if (data.session) {
-    window.location.replace(profileUrl);
+    await continueOrRequestMfa();
   } else {
     setMode("login");
   }
 } catch (error) {
-  showNotice("Ошибка подключения к авторизации. Проверь настройки Supabase.", "error");
+  console.error("Ошибка проверки сессии:", error);
+  showNotice(
+    error.message || "Ошибка подключения к авторизации. Проверь настройки Supabase.",
+    "error"
+  );
 }
 </script>    
 </body>
