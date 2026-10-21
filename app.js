@@ -304,6 +304,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }
 
     currentUser = session.user;
+    toast("ID аккаунта: " + currentUser.id.slice(0, 8));
 
     const { data: chatRows, error: chatError } = await supabase
       .from("ai_chats")
