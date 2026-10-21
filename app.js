@@ -27,6 +27,58 @@ let currentUser = null;
   ]);
   let toastTimer;
   const toast = (msg) => { const el=$("#toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),2600); };
+  
+function renderSidebarProfile(user) {
+  const button = document.querySelector("#profileButton");
+  if (!button || !user) return;
+
+  let savedProfile = {};
+  try {
+    savedProfile = JSON.parse(
+      localStorage.getItem("aiStudioProfile") || "{}"
+    );
+  } catch {}
+
+  const metadata = user.user_metadata || {};
+
+  const name =
+    metadata.profile_name ||
+    metadata.full_name ||
+    metadata.name ||
+    savedProfile.name ||
+    user.email?.split("@")[0] ||
+    "Пользователь";
+
+  const avatarUrl =
+    metadata.profile_avatar_url ||
+    metadata.avatar_url ||
+    metadata.picture ||
+    savedProfile.avatar ||
+    "";
+
+  const avatar = button.querySelector(".avatar");
+  const nameElement = button.querySelector(".profile-copy strong");
+  const planElement = button.querySelector(".profile-copy small");
+
+  nameElement.textContent = name;
+  planElement.textContent = "Free · Без подписки";
+
+  avatar.replaceChildren();
+
+  if (
+    typeof avatarUrl === "string" &&
+    (avatarUrl.startsWith("https://") ||
+     avatarUrl.startsWith("data:image/"))
+  ) {
+    const img = document.createElement("img");
+    img.src = avatarUrl;
+    img.alt = "Фото профиля";
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = name.trim().charAt(0).toLocaleUpperCase("ru-RU") || "U";
+  }
+}
+  
   const go = (page) => {
     if (!pageNames[page]) return;
     $$(".page").forEach(el=>el.classList.toggle("active-page",el.id===`page-${page}`));
