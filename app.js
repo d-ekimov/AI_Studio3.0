@@ -126,9 +126,9 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       .single();
 
     if (error) {
-      console.error("Ошибка создания чата:", error);
-      toast("Не удалось создать чат. Попробуй ещё раз.");
-      return;
+  console.error("Ошибка создания чата:", error);
+  toast("Ошибка: " + error.message);
+  return;
     }
 
     c = {
