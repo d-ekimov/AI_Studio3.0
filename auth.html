@@ -441,6 +441,9 @@ const SUPABASE_URL = "https://zzjfceazpjpavnyyigek.supabase.co";
 const SUPABASE_KEY = "sb_publishable_uZhcc1D66aEzG5xqoe1jcg_Ts7NZI3V";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const recoveryLinkDetected =
+  window.location.hash.includes("type=recovery") ||
+  new URLSearchParams(window.location.search).get("type") === "recovery";
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
@@ -807,8 +810,7 @@ document.getElementById("backButton").addEventListener("click", () => {
 });
 
 try {
-  const isRecoveryLink =
-    window.location.hash.includes("type=recovery");
+  const isRecoveryLink = recoveryLinkDetected;
 
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
