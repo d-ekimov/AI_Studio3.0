@@ -802,20 +802,29 @@ document.getElementById("backButton").addEventListener("click", () => {
 });
 
 try {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
 
-  
+try {
   const isRecoveryLink =
     window.location.hash.includes("type=recovery");
 
-  if (isRecoveryLink && data.session) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  if (recoveryMode || isRecoveryLink) {
     showRecoveryMode();
   } else if (data.session) {
     await continueOrRequestMfa();
   } else {
     setMode("login");
   }
+
+} catch (error) {
+  console.error("Ошибка проверки сессии:", error);
+  showNotice(
+    error.message || "Ошибка подключения к авторизации. Проверь настройки Supabase.",
+    "error"
+  );
+}
 
 } catch (error) {
   console.error("Ошибка проверки сессии:", error);
