@@ -377,6 +377,43 @@
         Войти в аккаунт <span>→</span>
       </button>
     </form>
+    
+    </form>
+
+    <!-- ВОССТАНОВЛЕНИЕ ПАРОЛЯ -->
+    <form id="recoveryForm" hidden>
+      <label class="field">
+        <span class="field-label">Новый пароль</span>
+        <span class="input-wrap">
+          <input
+            id="recoveryPassword"
+            type="password"
+            placeholder="Минимум 8 символов"
+            minlength="8"
+            autocomplete="new-password"
+            required
+          >
+        </span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Повтори новый пароль</span>
+        <span class="input-wrap">
+          <input
+            id="recoveryPasswordConfirm"
+            type="password"
+            placeholder="Введи пароль ещё раз"
+            minlength="8"
+            autocomplete="new-password"
+            required
+          >
+        </span>
+      </label>
+
+      <button class="primary" type="submit" id="recoverySubmit">
+        Сохранить новый пароль →
+      </button>
+    </form>
 
     <div class="separator">ИЛИ ПРОДОЛЖИТЬ С</div>
 
@@ -437,6 +474,103 @@ const authForm = document.getElementById("authForm");
 
 let currentMode = "login";
 let busy = false;
+  
+const recoveryForm = document.getElementById("recoveryForm");
+const recoveryPassword = document.getElementById("recoveryPassword");
+const recoveryPasswordConfirm = document.getElementById("recoveryPasswordConfirm");
+const recoverySubmit = document.getElementById("recoverySubmit");
+
+let recoveryMode = false;
+
+function showRecoveryMode() {
+  recoveryMode = true;
+
+  authForm.hidden = true;
+  document.querySelector(".tabs").hidden = true;
+  document.querySelector(".separator").hidden = true;
+  document.getElementById("googleButton").hidden = true;
+
+  recoveryForm.hidden = false;
+  heading.textContent = "Новый пароль";
+  description.textContent =
+    "Придумай новый пароль для своего аккаунта AI Studio.";
+
+  document.getElementById("backButton").textContent =
+    "← Вернуться ко входу";
+
+  showNotice("Ссылка для восстановления принята. Задай новый пароль.");
+}
+
+function exitRecoveryMode() {
+  recoveryMode = false;
+
+  recoveryForm.hidden = true;
+  authForm.hidden = false;
+  document.querySelector(".tabs").hidden = false;
+  document.querySelector(".separator").hidden = false;
+  document.getElementById("googleButton").hidden = false;
+
+  document.getElementById("backButton").textContent =
+    "← Вернуться в AI Studio";
+
+  setMode("login");
+}
+
+recoveryForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const password = recoveryPassword.value;
+  const confirmation = recoveryPasswordConfirm.value;
+
+  if (password.length < 8) {
+    showNotice("Пароль должен содержать минимум 8 символов.", "error");
+    return;
+  }
+
+  if (password !== confirmation) {
+    showNotice("Пароли не совпадают.", "error");
+    recoveryPasswordConfirm.focus();
+    return;
+  }
+
+  recoverySubmit.disabled = true;
+
+  try {
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) throw error;
+
+    const { error: signOutError } = await supabase.auth.signOut({
+      scope: "local"
+    });
+
+    if (signOutError) {
+      console.warn("Не удалось завершить текущий сеанс:", signOutError);
+    }
+
+    recoveryForm.reset();
+    exitRecoveryMode();
+
+    showNotice(
+      "Пароль изменён! Теперь войди с новым паролем.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Ошибка восстановления пароля:", error);
+    showNotice(
+      error.message || "Не удалось изменить пароль. Запроси новую ссылку.",
+      "error"
+    );
+  } finally {
+    recoverySubmit.disabled = false;
+  }
+});
+
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "PASSWORD_RECOVERY") {
+    showRecoveryMode();
+  }
+});
 
 const authUrl = window.location.origin + "/AI_Studio3.0/auth.html";
 const profileUrl = window.location.origin + "/AI_Studio3.0/profile.html";
@@ -657,19 +791,31 @@ document.getElementById("forgotButton").addEventListener("click", async () => {
   }
 });
 
+
 document.getElementById("backButton").addEventListener("click", () => {
-  window.location.href = "index.html";
+  if (recoveryMode) {
+    exitRecoveryMode();
+  } else {
+    window.location.href = "index.html";
+  }
 });
 
 try {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
 
-  if (data.session) {
+  
+  const isRecoveryLink =
+    window.location.hash.includes("type=recovery");
+
+  if (isRecoveryLink && data.session) {
+    showRecoveryMode();
+  } else if (data.session) {
     await continueOrRequestMfa();
   } else {
     setMode("login");
   }
+
 } catch (error) {
   console.error("Ошибка проверки сессии:", error);
   showNotice(
