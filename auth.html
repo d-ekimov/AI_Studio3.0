@@ -624,7 +624,12 @@ passwordInput.required = false;
     return;
   }
 
-  window.location.replace(profileUrl);
+  if (recoveryMode) {
+  showRecoveryMode();
+  return;
+}
+
+window.location.replace(profileUrl);
 }
   
 function showNotice(text, type = "") {
