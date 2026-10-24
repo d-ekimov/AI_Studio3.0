@@ -793,9 +793,9 @@ authForm.addEventListener("submit", async (event) => {
       await continueOrRequestMfa();
       return;
     }
-  } catch (error) {
+    } catch (error) {
     showNotice(error.message || "Не удалось выполнить авторизацию.", "error");
-    } finally {
+  } finally {
     if (captchaToken) {
       resetTurnstile();
     }
