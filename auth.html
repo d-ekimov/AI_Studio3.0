@@ -314,9 +314,14 @@
     </div>
 
     <form id="authForm">
-            <div id="turnstile-container"
+                  <div id="turnstile-container"
+           class="cf-turnstile"
+           data-sitekey="0x4AAAAAAFjpWgRYIgGwKivv"
+           data-callback="onTurnstileSuccess"
+           data-expired-callback="onTurnstileExpired"
+           data-error-callback="onTurnstileExpired"
            style="margin: 0 0 16px; display: flex; justify-content: center;">
-            </div>
+                  </div>
       <label class="field" id="nameField" hidden>
         <span class="field-label">Имя</span>
         <span class="input-wrap">
@@ -436,6 +441,17 @@
     </button>
   </main>
 
+  <script>
+  window.turnstileToken = "";
+
+  window.onTurnstileSuccess = function (token) {
+    window.turnstileToken = token;
+  };
+
+  window.onTurnstileExpired = function () {
+    window.turnstileToken = "";
+  };
+  </script>
    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
