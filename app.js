@@ -128,10 +128,10 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     icon.innerHTML = '<img src="./images/logos/deepseek.jpeg" alt="DeepSeek">';
     icon.classList.remove("openai");
     icon.classList.add("deepseek");
-  } else if (val === "gemini") {
-    icon.textContent = "✦";
-    icon.classList.remove("deepseek");
-    icon.classList.add("openai");
+} else if (val === "gemini") {
+  icon.innerHTML = '<img src="./images/logos/gemini.png" alt="Google Gemini">';
+  icon.classList.remove("deepseek");
+  icon.classList.add("openai");
   } else if (val === "future") {
     icon.textContent = "✧";
     icon.classList.remove("deepseek");
