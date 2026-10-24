@@ -892,17 +892,19 @@ async function checkSession() {
 }
     }
 
-    @media (max-width: 680px) {
-      .sidebar {
-        width: min(290px, 85vw);
-        padding-top: 22px;
-        transform: translateX(-105%);
-        transition: transform .25s ease;
-        box-shadow: none;
-        .plans-grid {
-  grid-template-columns: 1fr;
-        }
-      }
+    
+@media (max-width: 680px) {
+  .sidebar {
+    width: min(290px, 85vw);
+    padding-top: 22px;
+    transform: translateX(-105%);
+    transition: transform .25s ease;
+    box-shadow: none;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
 
       body.menu-open .sidebar {
         transform: translateX(0);
