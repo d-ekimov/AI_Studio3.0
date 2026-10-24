@@ -460,6 +460,17 @@ const SUPABASE_URL = "https://zzjfceazpjpavnyyigek.supabase.co";
 const SUPABASE_KEY = "sb_publishable_uZhcc1D66aEzG5xqoe1jcg_Ts7NZI3V";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  function resetTurnstile() {
+  window.turnstileToken = "";
+
+  if (window.turnstile) {
+    window.turnstile.reset();
+  }
+}
+
+function getTurnstileToken() {
+  return window.turnstileToken || "";
+}
 const recoveryLinkDetected =
   window.location.hash.includes("type=recovery") ||
   new URLSearchParams(window.location.search).get("type") === "recovery";
@@ -716,6 +727,13 @@ authForm.addEventListener("submit", async (event) => {
   return;
   }
 
+    const captchaToken = mfaChallengeId ? "" : getTurnstileToken();
+
+  if (!mfaChallengeId && !captchaToken) {
+    showNotice("Пройди проверку Cloudflare CAPTCHA.", "error");
+    return;
+  }
+
   setBusy(true);
 
   
@@ -724,9 +742,10 @@ authForm.addEventListener("submit", async (event) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
+                options: {
           data: { full_name: name },
-          emailRedirectTo: authUrl
+          emailRedirectTo: authUrl,
+          captchaToken
         }
       });
 
