@@ -2039,13 +2039,16 @@ avatarInput.addEventListener("change", () => {
   cropFile = file;
   const reader = new FileReader();
 
-  reader.onload = () => {
-    cropImage.onload = () => {
-      const size = cropViewport.clientWidth;
-      cropBaseScale = Math.max(
-        size / cropImage.naturalWidth,
-        size / cropImage.naturalHeight
-      );
+  
+reader.onload = () => {
+  cropImage.onload = () => {
+    cropModal.hidden = false;
+
+    const size = cropViewport.clientWidth;
+    cropBaseScale = Math.max(
+      size / cropImage.naturalWidth,
+      size / cropImage.naturalHeight
+    );
 
       cropScale = 1;
       cropZoom.value = "1";
@@ -2056,7 +2059,6 @@ avatarInput.addEventListener("change", () => {
       cropX = (size - width) / 2;
       cropY = (size - height) / 2;
 
-      cropModal.hidden = false;
       drawCropImage();
     };
 
