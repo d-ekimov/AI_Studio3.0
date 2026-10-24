@@ -5,3 +5,36 @@
 @media(max-width:1100px){:root{--sidebar:225px}.page{padding-left:26px;padding-right:26px}.topbar{padding:0 26px}.project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.task-stats{grid-template-columns:repeat(3,minmax(70px,1fr))}.progress-stat{grid-column:1/-1}.task-stats>div{padding:11px 13px}}
 @media(max-width:760px){:root{--sidebar:260px}.sidebar{transform:translateX(-102%);transition:transform .22s ease;box-shadow:none}.sidebar.sidebar-open{transform:translateX(0);box-shadow:15px 0 50px #0007}.main-area{margin-left:0}.topbar{height:58px;padding:0 15px}.mobile-menu{display:grid}.breadcrumb{margin-right:auto;margin-left:10px;font-size:11px}.top-actions{gap:7px}.status-pill{display:none}.help-btn span{display:none}.page{padding:25px 16px 18px}.chat-heading{margin:8px 0 21px}.heading-badge{display:none}.chat-heading h1,.page-header h1{font-size:27px}.chat-heading p,.page-header p{font-size:12px}.model-strip{align-items:center}.model-select-wrap{min-width:0;flex:1;max-width:250px}.demo-note{font-size:9px}.welcome-card{padding:15px}.welcome-orb{width:38px;height:38px}.suggestions{gap:7px}.suggestion{padding:10px 8px;gap:7px}.suggestion-icon{width:28px;height:28px;flex:none}.suggestion strong{font-size:10px}.suggestion small{font-size:8px}.suggestion>b{display:none}.composer-tools>span{max-width:80%;font-size:8px}.compare-grid{grid-template-columns:1fr}.compare-input{display:block}.compare-input .primary-btn{width:100%;margin-top:8px}.page-header-row{align-items:flex-start;flex-direction:column}.page-header-row .primary-btn{align-self:flex-start}.project-grid{grid-template-columns:1fr}.project-card{min-height:0}.project-card p{min-height:0}.add-project-card{min-height:140px}.task-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.task-stats>div{padding:10px}.task-stats small{font-size:7px}.task-stats strong{font-size:20px}.progress-stat{grid-column:1/-1}.provider-card{align-items:flex-start;flex-wrap:wrap;padding:13px}.provider-card .provider-main{width:calc(100% - 50px);flex:none}.provider-card .outline-btn{margin-left:48px}.provider-title h3{font-size:12px}.app-footer{padding:14px 16px}.app-footer span:nth-child(2){display:none}.task-tag{font-size:8px}.task-copy p{max-width:95%;line-height:1.4}}
 @media(max-width:390px){.page{padding-left:12px;padding-right:12px}.breadcrumb>span:first-child{display:none}.breadcrumb .crumb-slash{display:none}.chat-heading h1{font-size:24px}.model-select-wrap{padding:7px}.demo-note{max-width:78px}.suggestion small{display:none}.suggestion{min-height:57px}.task-row{gap:8px}.task-tag{padding:4px}.dialog-form{padding:21px}}
+.compare-model-select {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.compare-model-select strong {
+  font-size: 11px;
+}
+
+.compare-model {
+  max-width: 100%;
+  background: #191b25;
+  color: #e8e6f2;
+  border: 1px solid #393b49;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+.compare-card-head .provider-icon img,
+#compareIcon1 img,
+#compareIcon2 img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+.compare-card-head .provider-icon:has(img) {
+  overflow: hidden;
+  padding: 4px;
+}
