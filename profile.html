@@ -943,6 +943,99 @@ async function checkSession() {
         transition-duration: .01ms !important;
       }
     }
+    
+.crop-modal[hidden] {
+  display: none !important;
+}
+
+.crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, .78);
+}
+
+.crop-dialog {
+  width: min(100%, 430px);
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card, #171821);
+  color: var(--text, #f5f3ff);
+  box-shadow: 0 20px 80px #0008;
+}
+
+.crop-dialog h2 {
+  margin: 0 0 7px;
+  font-size: 20px;
+}
+
+.crop-dialog > p {
+  margin: 0 0 18px;
+  color: var(--muted, #a1a1b3);
+  font-size: 13px;
+}
+
+.crop-viewport {
+  position: relative;
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  margin: 0 auto 20px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #09090d;
+  touch-action: none;
+  cursor: grab;
+}
+
+.crop-viewport:active {
+  cursor: grabbing;
+}
+
+.crop-viewport img {
+  position: absolute;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.crop-circle-guide {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(255, 255, 255, .85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, .32);
+  pointer-events: none;
+}
+
+.crop-zoom-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+#cropZoom {
+  display: block;
+  width: 100%;
+  accent-color: var(--accent, #a78bfa);
+}
+
+.crop-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.crop-actions button {
+  min-height: 40px;
+}
   </style>
 </head>
 
@@ -1446,6 +1539,26 @@ async function checkSession() {
 
           <div class="message" id="avatarMessage" role="status" aria-live="polite"></div>
         </section>
+        
+<div id="avatarCropModal" class="crop-modal" hidden>
+  <div class="crop-dialog">
+    <h2>Настрой фотографию</h2>
+    <p>Перемещай фото и настрой масштаб, чтобы выбрать нужную область.</p>
+
+    <div id="cropViewport" class="crop-viewport">
+      <img id="cropImage" alt="Предпросмотр фотографии">
+      <div class="crop-circle-guide"></div>
+    </div>
+
+    <label class="crop-zoom-label" for="cropZoom">Масштаб фотографии</label>
+    <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1">
+
+    <div class="crop-actions">
+      <button type="button" class="secondary-button" id="cropCancel">Отмена</button>
+      <button type="button" class="primary-button" id="cropSave">Сохранить фото</button>
+    </div>
+  </div>
+</div>
 
         <section class="card">
           <h2 class="card-title">Личные данные</h2>
@@ -1850,9 +1963,55 @@ async function checkSession() {
     });
 
  // Загрузка фотографии
-avatarInput.addEventListener("change", async () => {
-  const file = avatarInput.files && avatarInput.files[0];
+const cropModal = $("#avatarCropModal");
+const cropViewport = $("#cropViewport");
+const cropImage = $("#cropImage");
+const cropZoom = $("#cropZoom");
+const cropSave = $("#cropSave");
+const cropCancel = $("#cropCancel");
 
+let cropFile = null;
+let cropScale = 1;
+let cropBaseScale = 1;
+let cropX = 0;
+let cropY = 0;
+let cropStartX = 0;
+let cropStartY = 0;
+let dragStartX = 0;
+let dragStartY = 0;
+let cropDragging = false;
+
+function drawCropImage() {
+  const size = cropViewport.clientWidth;
+  const width = cropImage.naturalWidth * cropBaseScale * cropScale;
+  const height = cropImage.naturalHeight * cropBaseScale * cropScale;
+
+  cropImage.style.width = width + "px";
+  cropImage.style.height = height + "px";
+  cropImage.style.left = cropX + "px";
+  cropImage.style.top = cropY + "px";
+}
+
+function clampCrop() {
+  const size = cropViewport.clientWidth;
+  const width = cropImage.naturalWidth * cropBaseScale * cropScale;
+  const height = cropImage.naturalHeight * cropBaseScale * cropScale;
+
+  cropX = Math.min(0, Math.max(size - width, cropX));
+  cropY = Math.min(0, Math.max(size - height, cropY));
+
+  drawCropImage();
+}
+
+function closeCrop() {
+  cropModal.hidden = true;
+  cropFile = null;
+  cropImage.removeAttribute("src");
+  avatarInput.value = "";
+}
+
+avatarInput.addEventListener("change", () => {
+  const file = avatarInput.files && avatarInput.files[0];
   if (!file) return;
 
   const message = $("#avatarMessage");
@@ -1877,34 +2036,130 @@ avatarInput.addEventListener("change", async () => {
     return;
   }
 
+  cropFile = file;
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    cropImage.onload = () => {
+      const size = cropViewport.clientWidth;
+      cropBaseScale = Math.max(
+        size / cropImage.naturalWidth,
+        size / cropImage.naturalHeight
+      );
+
+      cropScale = 1;
+      cropZoom.value = "1";
+
+      const width = cropImage.naturalWidth * cropBaseScale;
+      const height = cropImage.naturalHeight * cropBaseScale;
+
+      cropX = (size - width) / 2;
+      cropY = (size - height) / 2;
+
+      cropModal.hidden = false;
+      drawCropImage();
+    };
+
+    cropImage.src = reader.result;
+  };
+
+  reader.readAsDataURL(file);
+});
+
+cropZoom.addEventListener("input", () => {
+  const size = cropViewport.clientWidth;
+  const oldScale = cropScale;
+  const nextScale = Number(cropZoom.value);
+
+  const centerX = size / 2;
+  const centerY = size / 2;
+
+  cropX = centerX - (centerX - cropX) * nextScale / oldScale;
+  cropY = centerY - (centerY - cropY) * nextScale / oldScale;
+  cropScale = nextScale;
+
+  clampCrop();
+});
+
+cropViewport.addEventListener("pointerdown", event => {
+  cropDragging = true;
+  dragStartX = event.clientX;
+  dragStartY = event.clientY;
+  cropStartX = cropX;
+  cropStartY = cropY;
+  cropViewport.setPointerCapture(event.pointerId);
+});
+
+cropViewport.addEventListener("pointermove", event => {
+  if (!cropDragging) return;
+
+  cropX = cropStartX + event.clientX - dragStartX;
+  cropY = cropStartY + event.clientY - dragStartY;
+  clampCrop();
+});
+
+cropViewport.addEventListener("pointerup", () => {
+  cropDragging = false;
+});
+
+cropViewport.addEventListener("pointercancel", () => {
+  cropDragging = false;
+});
+
+cropCancel.addEventListener("click", closeCrop);
+
+cropSave.addEventListener("click", async () => {
+  if (!cropFile) return;
+
+  const message = $("#avatarMessage");
+  cropSave.disabled = true;
+
   try {
     const supabase = window.aiStudioSupabase;
-
-    if (!supabase) {
-      throw new Error("Supabase не подключён.");
-    }
+    if (!supabase) throw new Error("Supabase не подключён.");
 
     const { data: userData, error: userError } =
       await supabase.auth.getUser();
 
     if (userError) throw userError;
+    if (!userData.user) throw new Error("Войди в аккаунт и попробуй снова.");
 
-    const user = userData.user;
+    const size = cropViewport.clientWidth;
+    const sourceScale = cropBaseScale * cropScale;
 
-    if (!user) {
-      showMessage(message, "Войди в аккаунт и попробуй снова.", true);
-      return;
-    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
 
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `${user.id}/${Date.now()}-${safeName}`;
+    const context = canvas.getContext("2d");
+    context.drawImage(
+      cropImage,
+      -cropX / sourceScale,
+      -cropY / sourceScale,
+      size / sourceScale,
+      size / sourceScale,
+      0,
+      0,
+      512,
+      512
+    );
 
-    showMessage(message, "Загружаю фотографию в облако...");
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        result => result ? resolve(result) : reject(new Error("Не удалось обработать фото.")),
+        "image/jpeg",
+        0.92
+      );
+    });
+
+    const filePath = `${userData.user.id}/${Date.now()}-avatar.jpg`;
+
+    showMessage(message, "Загружаю подготовленную фотографию...");
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, file, {
-        contentType: file.type,
+      .upload(filePath, blob, {
+        contentType: "image/jpeg",
         upsert: false
       });
 
@@ -1915,16 +2170,17 @@ avatarInput.addEventListener("change", async () => {
       .getPublicUrl(filePath);
 
     const { error: metadataError } = await supabase.auth.updateUser({
-  data: { profile_avatar_url: urlData.publicUrl }
-});
+      data: { profile_avatar_url: urlData.publicUrl }
+    });
 
-if (metadataError) throw metadataError;
+    if (metadataError) throw metadataError;
 
-const profile = readProfile();
-profile.avatar = urlData.publicUrl;
-saveProfile(profile);
-renderProfile();
+    const profile = readProfile();
+    profile.avatar = urlData.publicUrl;
+    saveProfile(profile);
+    renderProfile();
 
+    closeCrop();
     showMessage(message, "Фотография загружена и сохранена!");
   } catch (error) {
     console.error("Ошибка загрузки фотографии:", error);
@@ -1934,10 +2190,9 @@ renderProfile();
       true
     );
   } finally {
-    avatarInput.value = "";
+    cropSave.disabled = false;
   }
 });
-
     
 $("#removeAvatar").addEventListener("click", async () => {
   const message = $("#avatarMessage");
