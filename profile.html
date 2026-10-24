@@ -1829,7 +1829,6 @@ async function checkSession() {
       localStorage.setItem("aiStudioProfile", JSON.stringify(profile));
     }
 
-    function getTokens() {
     
     function getGenerations(type) {
       const key = type === "text"
@@ -1838,6 +1837,7 @@ async function checkSession() {
 
       try {
         const stored = localStorage.getItem(key);
+
         if (stored === null) {
           localStorage.setItem(key, "0");
           return 0;
