@@ -285,11 +285,70 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     clear();
   }
 });
-  const compareReply=(p,model)=>model==="ChatGPT"?"Подход: начать с пользователя и простоты.\n\n1. Выделить главную ценность.\n2. Предложить ясный и запоминающийся вариант.\n3. Проверить, легко ли объяснить идею одной фразой.\n\nПример: «Одно пространство. Все твои ИИ.»":"Подход: сначала задать критерии и сравнить варианты.\n\n1. Определить аудиторию и задачу.\n2. Создать 3–5 вариантов.\n3. Оценить понятность, отличие и масштабируемость.\n\nЗапрос: «"+p.slice(0,100)+"»\n\nЭто пример структуры ответа, не реальный ответ DeepSeek.";
-  $("#compareRun").addEventListener("click",()=>{
-    const p=$("#comparePrompt").value.trim();if(!p){toast("Сначала напиши запрос для сравнения.");$("#comparePrompt").focus();return;}
-    const cards=$$(".compare-card");cards.forEach((card,i)=>{const model=i===0?"ChatGPT":"DeepSeek";const answer=$(".compare-answer",card);answer.classList.remove("muted-answer");answer.textContent=compareReply(p,model);});toast("Демонстрационные ответы готовы.");
+    const compareNames = {
+    chatgpt: "ChatGPT",
+    deepseek: "DeepSeek",
+    gemini: "Google Gemini"
+  };
+
+  const compareReply = (p, model) => {
+    if (model === "chatgpt") {
+      return "Подход ChatGPT:\n\n1. Определить главную цель.\n2. Разбить задачу на понятные шаги.\n3. Предложить практическое решение.\n\nЗапрос: «" + p.slice(0, 100) + "»\n\nЭто демонстрационный ответ.";
+    }
+
+    if (model === "deepseek") {
+      return "Подход DeepSeek:\n\n1. Разобрать задачу и ограничения.\n2. Сравнить возможные решения.\n3. Выбрать наиболее эффективный вариант.\n\nЗапрос: «" + p.slice(0, 100) + "»\n\nЭто демонстрационный ответ.";
+    }
+
+    return "Подход Google Gemini:\n\n1. Рассмотреть задачу с разных сторон.\n2. Сформировать несколько идей.\n3. Выбрать наиболее перспективное решение.\n\nЗапрос: «" + p.slice(0, 100) + "»\n\nЭто демонстрационный ответ.";
+  };
+
+  function updateCompareModel(slot) {
+    const select = $("#compareModel" + slot);
+    const icon = $("#compareIcon" + slot);
+    const model = select.value;
+
+    icon.className = "provider-icon " +
+      (model === "deepseek" ? "deepseek" : "openai");
+
+    const imagePath = {
+      chatgpt: "./images/logos/gpt.jpeg",
+      deepseek: "./images/logos/deepseek.jpeg",
+      gemini: "./images/logos/gemini.png"
+    }[model];
+
+    icon.innerHTML = "";
+    const img = document.createElement("img");
+    img.src = imagePath;
+    img.alt = compareNames[model];
+    icon.appendChild(img);
+  }
+
+  $("#compareModel1").addEventListener("change", () => updateCompareModel(1));
+  $("#compareModel2").addEventListener("change", () => updateCompareModel(2));
+
+  $("#compareRun").addEventListener("click", () => {
+    const p = $("#comparePrompt").value.trim();
+
+    if (!p) {
+      toast("Сначала напиши запрос для сравнения.");
+      $("#comparePrompt").focus();
+      return;
+    }
+
+    [1, 2].forEach(slot => {
+      const model = $("#compareModel" + slot).value;
+      const card = $("#compareIcon" + slot).closest(".compare-card");
+      const answer = $(".compare-answer", card);
+
+      answer.classList.remove("muted-answer");
+      answer.textContent = compareReply(p, model);
+    });
+
+    toast("Демонстрационные ответы готовы.");
   });
+  updateCompareModel(1);
+  updateCompareModel(2);
   const renderProjects=()=>{
     const grid=$("#projectGrid");grid.innerHTML="";
     projects.forEach((p,i)=>{const card=document.createElement("article");card.className="project-card";card.innerHTML=`<div class="project-icon ${p.color||"purple-bg"}">${p.icon||"✧"}</div><span class="project-state ${p.state==="Идея"?"quiet-state":""}">${p.state||"В работе"}</span><h3></h3><p></p><div class="project-meta"><span>◷ Локально</span><span>${Number(p.tasks)||0} задач</span></div><button class="text-action">Открыть проект <span>→</span></button>`;$("h3",card).textContent=p.name;$("p",card).textContent=p.desc;$(".text-action",card).addEventListener("click",()=>openDialog(p.name,"Проект создан в прототипе. Позже здесь появятся связанные чаты, файлы и задачи.","Понятно",()=>{}));grid.appendChild(card);});
