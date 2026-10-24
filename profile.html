@@ -1979,7 +1979,7 @@ async function checkSession() {
 
       if (history.length === 0) {
         container.className = "history-empty";
-        container.textContent = "Пока операций нет. Можешь добавить тестовые токены выше.";
+        container.textContent = "Пока операций нет. Выбери пакет генераций выше.";
         return;
       }
 
@@ -1994,10 +1994,15 @@ async function checkSession() {
         const date = document.createElement("p");
         const amount = document.createElement("span");
 
-        title.textContent = "Демо-пополнение";
+        const isText = item.type === "text";
+        title.textContent = isText
+          ? "Текстовые генерации"
+          : "Медиа-генерации";
         date.textContent = item.date || "";
         amount.className = "badge";
-        amount.textContent = "+" + formatNumber(Number(item.amount) || 0) + " токенов";
+        amount.textContent =
+          "+" + formatNumber(Number(item.amount) || 0) +
+          (isText ? " текст." : " медиа");
 
         details.append(title, date);
         row.append(details, amount);
@@ -2005,36 +2010,57 @@ async function checkSession() {
       });
     }
 
-    function addTokens(amount) {
-      const current = getTokens();
+    function addGeneration(type, amount) {
+      if (
+        !["text", "media"].includes(type) ||
+        !Number.isSafeInteger(amount) ||
+        amount <= 0
+      ) {
+        showMessage($("#balanceMessage"), "Некорректный пакет генераций.", true);
+        return;
+      }
+
+      const key = type === "text"
+        ? "aiStudioTextGenerations"
+        : "aiStudioMediaGenerations";
+      const current = getGenerations(type);
 
       if (current + amount > Number.MAX_SAFE_INTEGER) {
-        showMessage($("#balanceMessage"), "Не удалось добавить токены: превышен допустимый предел.", true);
+        showMessage($("#balanceMessage"), "Превышен допустимый предел.", true);
         return;
       }
 
       try {
-        localStorage.setItem("aiStudioDemoTokens", String(current + amount));
+        localStorage.setItem(key, String(current + amount));
 
         const history = getHistory();
         history.unshift({
+          type,
           amount,
           date: new Date().toLocaleString("ru-RU")
         });
 
-        localStorage.setItem("aiStudioDemoHistory", JSON.stringify(history.slice(0, 10)));
+        localStorage.setItem(
+          "aiStudioDemoHistory",
+          JSON.stringify(history.slice(0, 10))
+        );
 
         renderProfile();
         renderHistory();
 
+        const label = type === "text"
+          ? "текстовых генераций"
+          : "медиа-генераций";
+
         showMessage(
           $("#balanceMessage"),
-          "Добавлено " + formatNumber(amount) + " тестовых токенов. Реального платежа не было."
+          "Добавлено " + amount + " " + label +
+          ". Реального платежа не было."
         );
       } catch (error) {
         showMessage(
           $("#balanceMessage"),
-          "Не удалось сохранить изменения. Возможно, хранилище браузера заполнено.",
+          "Не удалось сохранить изменения в браузере.",
           true
         );
       }
@@ -2411,10 +2437,14 @@ $("#removeAvatar").addEventListener("click", async () => {
 });
 
 
-    // Демо-пополнение
-    $$("[data-add-tokens]").forEach((button) => {
+
+    // Демо-пополнение генераций
+    $$("[data-add-generation]").forEach((button) => {
       button.addEventListener("click", () => {
-        addTokens(Number(button.dataset.addTokens));
+        addGeneration(
+          button.dataset.addGeneration,
+          Number(button.dataset.amount)
+        );
       });
     });
 
