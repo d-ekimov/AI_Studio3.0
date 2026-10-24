@@ -1830,23 +1830,23 @@ async function checkSession() {
     }
 
     function getTokens() {
-      try {
-        const stored = localStorage.getItem("aiStudioDemoTokens");
+    
+    function getGenerations(type) {
+      const key = type === "text"
+        ? "aiStudioTextGenerations"
+        : "aiStudioMediaGenerations";
 
+      try {
+        const stored = localStorage.getItem(key);
         if (stored === null) {
-          localStorage.setItem("aiStudioDemoTokens", String(DEFAULT_TOKENS));
-          return DEFAULT_TOKENS;
+          localStorage.setItem(key, "0");
+          return 0;
         }
 
         const value = Number(stored);
-
-        if (!Number.isSafeInteger(value) || value < 0) {
-          return DEFAULT_TOKENS;
-        }
-
-        return value;
+        return Number.isSafeInteger(value) && value >= 0 ? value : 0;
       } catch (error) {
-        return DEFAULT_TOKENS;
+        return 0;
       }
     }
 
