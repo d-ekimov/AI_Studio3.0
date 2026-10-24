@@ -782,9 +782,10 @@ authForm.addEventListener("submit", async (event) => {
       await continueOrRequestMfa();
       return;
     } else {
-      const { error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: { captchaToken }
       });
 
       if (error) throw error;
@@ -794,7 +795,10 @@ authForm.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     showNotice(error.message || "Не удалось выполнить авторизацию.", "error");
-  } finally {
+    } finally {
+    if (captchaToken) {
+      resetTurnstile();
+    }
     setBusy(false);
   }
 });
@@ -824,20 +828,27 @@ document.getElementById("forgotButton").addEventListener("click", async () => {
     emailInput.focus();
     return;
   }
+  const captchaToken = getTurnstileToken();
 
+  if (!captchaToken) {
+    showNotice("Пройди проверку Cloudflare CAPTCHA.", "error");
+    return;
+  }
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: authUrl
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: authUrl,
+      captchaToken
     });
 
     if (error) throw error;
 
     showNotice("Если для этого email существует аккаунт, инструкция для сброса пароля будет отправлена на почту.", "success");
-  } catch (error) {
+    } catch (error) {
     showNotice(error.message || "Не удалось отправить письмо.", "error");
+  } finally {
+    resetTurnstile();
   }
 });
-
 
 document.getElementById("backButton").addEventListener("click", () => {
   if (recoveryMode) {
