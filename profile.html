@@ -688,13 +688,114 @@ async function checkSession() {
       white-space: nowrap;
     }
 
-    .plans-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 20px;
-    }
+    
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
 
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #15161f;
+  transition: transform .2s ease, border-color .2s ease,
+    box-shadow .2s ease;
+}
+
+.plan-card:hover {
+  transform: translateY(-3px);
+  border-color: #65518d;
+  box-shadow: 0 12px 32px #0003;
+}
+
+.plan-card.featured {
+  border-color: #7655b3;
+  background:
+    radial-gradient(ellipse at top right, #68429c30, transparent 65%),
+    #191622;
+}
+
+.plan-card.ultra-card {
+  border-color: #8b5cf6;
+  background:
+    radial-gradient(ellipse at top right, #7541d740, transparent 65%),
+    #171321;
+  box-shadow: inset 0 0 24px #8b5cf610;
+}
+
+.plan-icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #211832;
+  border: 1px solid #45345f;
+}
+
+.plan-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.plan-name {
+  margin-bottom: 8px;
+  color: #d8c8ff;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.plan-card h3 {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.plan-price {
+  margin-bottom: 5px;
+  font-size: 20px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.plan-caption {
+  min-height: 34px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.plan-card ul {
+  flex: 1;
+  width: 100%;
+  padding-left: 17px;
+  margin-bottom: 22px;
+  color: #c6c2d7;
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.plan-card li {
+  padding-left: 2px;
+  margin-bottom: 7px;
+}
+
+.plan-card button {
+  width: 100%;
+  margin-top: auto;
+}
+  
     .plan-card {
       display: flex;
       flex-direction: column;
@@ -783,12 +884,12 @@ async function checkSession() {
       }
 
       .plans-grid {
-        grid-template-columns: 1fr;
-      }
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 
-      .plan-card {
-        min-height: 240px;
-      }
+.plan-card {
+  min-height: 300px;
+}
     }
 
     @media (max-width: 680px) {
@@ -798,6 +899,9 @@ async function checkSession() {
         transform: translateX(-105%);
         transition: transform .25s ease;
         box-shadow: none;
+        .plans-grid {
+  grid-template-columns: 1fr;
+        }
       }
 
       body.menu-open .sidebar {
@@ -1454,49 +1558,88 @@ async function checkSession() {
           изменить перед запуском настоящей системы оплаты.
         </div>
 
-        <div class="plans-grid">
-          <article class="plan-card">
-            <h3>Free</h3>
-            <div class="plan-price">0 ₽</div>
-            <div class="plan-caption">для знакомства с сервисом</div>
-            <ul>
-              <li>Базовые возможности</li>
-              <li>Ограниченный доступ</li>
-              <li>Без подписки</li>
-            </ul>
-            <button class="secondary-button" type="button" data-plan="Free">
-              Текущий демо-тариф
-            </button>
-          </article>
+        
+<div class="plans-grid">
+  <!-- FREE -->
+  <article class="plan-card">
+    <div class="plan-icon">
+      <img src="./images/podpiska/free.jpg" alt="Free">
+    </div>
+    <div class="plan-name">Free</div>
+    <div class="plan-price">Бесплатно</div>
+    <div class="plan-caption">Для знакомства с AI Studio</div>
+    <ul>
+      <li>15 текстовых запросов в день</li>
+      <li>Чаты с ChatGPT, DeepSeek и Gemini</li>
+      <li>История чатов</li>
+      <li>Без режима «Несколько ИИ»</li>
+      <li>Без генерации фото, видео и аудио</li>
+    </ul>
+    <button class="secondary-button" type="button" data-plan="Free">
+      Текущий демо-тариф
+    </button>
+  </article>
 
-          <article class="plan-card featured">
-            <h3>Plus</h3>
-            <div class="plan-price">— ₽</div>
-            <div class="plan-caption">цена будет определена позже</div>
-            <ul>
-              <li>Расширенные возможности</li>
-              <li>Увеличенные лимиты</li>
-              <li>Требует подключения оплаты</li>
-            </ul>
-            <button class="primary-button" type="button" data-plan="Plus">
-              Посмотреть статус
-            </button>
-          </article>
+  <!-- PLUS -->
+  <article class="plan-card featured">
+    <div class="plan-icon">
+      <img src="./images/podpiska/plus.jpg" alt="Plus">
+    </div>
+    <div class="plan-name">Plus</div>
+    <div class="plan-price">Цена позже</div>
+    <div class="plan-caption">Больше возможностей для общения</div>
+    <ul>
+      <li>30 текстовых запросов в день</li>
+      <li>Доступ к ChatGPT, DeepSeek и Gemini</li>
+      <li>Режим «Несколько ИИ»</li>
+      <li>Один запуск «Несколько ИИ» расходует 2 запроса</li>
+      <li>Генерация фото, видео и аудио не включена</li>
+    </ul>
+    <button class="primary-button" type="button" data-plan="Plus">
+      Посмотреть статус
+    </button>
+  </article>
 
-          <article class="plan-card">
-            <h3>Pro</h3>
-            <div class="plan-price">— ₽</div>
-            <div class="plan-caption">цена будет определена позже</div>
-            <ul>
-              <li>Максимальные возможности</li>
-              <li>Расширенные лимиты</li>
-              <li>Требует подключения оплаты</li>
-            </ul>
-            <button class="secondary-button" type="button" data-plan="Pro">
-              Посмотреть статус
-            </button>
-          </article>
-        </div>
+  <!-- PRO -->
+  <article class="plan-card">
+    <div class="plan-icon">
+      <img src="./images/podpiska/pro.jpg" alt="Pro">
+    </div>
+    <div class="plan-name">Pro</div>
+    <div class="plan-price">Цена позже</div>
+    <div class="plan-caption">Для активной работы с ИИ</div>
+    <ul>
+      <li>60 текстовых запросов в день</li>
+      <li>Доступ к ChatGPT, DeepSeek и Gemini</li>
+      <li>Режим «Несколько ИИ» — 2 запроса за запуск</li>
+      <li>10 генераций в месяц на фото, видео и аудио</li>
+      <li>Общий лимит для всех типов генерации</li>
+    </ul>
+    <button class="secondary-button" type="button" data-plan="Pro">
+      Посмотреть статус
+    </button>
+  </article>
+
+  <!-- ULTRA -->
+  <article class="plan-card ultra-card">
+    <div class="plan-icon">
+      <img src="./images/podpiska/ultra.jpg" alt="Ultra">
+    </div>
+    <div class="plan-name">Ultra</div>
+    <div class="plan-price">Безлимит на текст</div>
+    <div class="plan-caption">Максимальные возможности AI Studio</div>
+    <ul>
+      <li>Безлимитные текстовые запросы к ChatGPT, DeepSeek и Gemini</li>
+      <li>Режим «Несколько ИИ» без расхода лимита текстовых запросов</li>
+      <li>30 генераций в месяц на фото, видео и аудио</li>
+      <li>Общий лимит для всех типов генерации</li>
+      <li>Возможность докупать генерации — позже</li>
+    </ul>
+    <button class="secondary-button" type="button" data-plan="Ultra">
+      Посмотреть статус
+    </button>
+  </article>
+</div>
 
         <div class="message" id="planMessage" role="status" aria-live="polite"></div>
       </section>
