@@ -1293,71 +1293,104 @@ async function checkSession() {
       <!-- БАЛАНС -->
       <section class="page" id="page-balance">
         <header class="heading">
-          <div class="eyebrow">Токены</div>
+          <div class="eyebrow">Генерации AI Studio</div>
           <h1>Пополнить баланс</h1>
-          <p>Управляй тестовым балансом для будущих AI-функций.</p>
+          <p>Пополняй текстовые и медиа-генерации отдельно.</p>
         </header>
 
         <section class="card">
-          <div class="balance-label">Доступно на балансе</div>
-          <div class="balance-number">
-            <span id="balanceAmount">1 000</span>
-            <span>токенов</span>
+          <h2 class="card-title">Твой баланс генераций</h2>
+
+          <div class="settings-row">
+            <div>
+              <strong>Текстовые генерации</strong>
+              <p>Для текстовых запросов к ИИ</p>
+            </div>
+            <span class="badge" id="textBalance">0</span>
+          </div>
+
+          <div class="settings-row">
+            <div>
+              <strong>Медиа-генерации</strong>
+              <p>Для фото, видео и аудио</p>
+            </div>
+            <span class="badge" id="mediaBalance">0</span>
           </div>
 
           <div class="demo-label">Демо-режим · Реальных платежей нет</div>
 
           <p class="card-description" style="margin-top: 20px; margin-bottom: 0;">
-            Выбери количество тестовых токенов. Они добавятся только в
-            локальное хранилище этого браузера и пока не дают реального
-            доступа к платным AI-сервисам.
+            Купленные генерации будут учитываться отдельно от лимитов,
+            включённых в подписку. Пока это демонстрационный интерфейс.
           </p>
         </section>
 
         <section class="card">
-          <h2 class="card-title">Выбери пакет</h2>
-          <p class="card-description">
-            Это демонстрационные пакеты, а не реальные покупки.
-          </p>
+          <h2 class="card-title">Текстовые генерации</h2>
+          <p class="card-description">Выбери пакет текстовых генераций.</p>
 
           <div class="plans-grid">
             <article class="plan-card">
+              <h3>Мини</h3>
+              <div class="plan-price">+10</div>
+              <div class="plan-caption">текстовых генераций</div>
+              <button class="primary-button" type="button" data-add-generation="text" data-amount="10">Выбрать</button>
+            </article>
+
+            <article class="plan-card">
               <h3>Старт</h3>
-              <div class="plan-price">+500</div>
-              <div class="plan-caption">тестовых токенов</div>
-              <ul>
-                <li>Демо-пополнение</li>
-                <li>Без оплаты</li>
-              </ul>
-              <button class="primary-button" type="button" data-add-tokens="500">
-                Добавить
-              </button>
+              <div class="plan-price">+20</div>
+              <div class="plan-caption">текстовых генераций</div>
+              <button class="primary-button" type="button" data-add-generation="text" data-amount="20">Выбрать</button>
             </article>
 
             <article class="plan-card featured">
               <h3>Стандарт</h3>
-              <div class="plan-price">+1 500</div>
-              <div class="plan-caption">тестовых токенов</div>
-              <ul>
-                <li>Демо-пополнение</li>
-                <li>Без оплаты</li>
-              </ul>
-              <button class="primary-button" type="button" data-add-tokens="1500">
-                Добавить
-              </button>
+              <div class="plan-price">+30</div>
+              <div class="plan-caption">текстовых генераций</div>
+              <button class="primary-button" type="button" data-add-generation="text" data-amount="30">Выбрать</button>
             </article>
 
             <article class="plan-card">
               <h3>Максимум</h3>
-              <div class="plan-price">+5 000</div>
-              <div class="plan-caption">тестовых токенов</div>
-              <ul>
-                <li>Демо-пополнение</li>
-                <li>Без оплаты</li>
-              </ul>
-              <button class="primary-button" type="button" data-add-tokens="5000">
-                Добавить
-              </button>
+              <div class="plan-price">+50</div>
+              <div class="plan-caption">текстовых генераций</div>
+              <button class="primary-button" type="button" data-add-generation="text" data-amount="50">Выбрать</button>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Медиа-генерации</h2>
+          <p class="card-description">Дополнительные генерации фото, видео и аудио.</p>
+
+          <div class="plans-grid">
+            <article class="plan-card">
+              <h3>Мини</h3>
+              <div class="plan-price">+5</div>
+              <div class="plan-caption">медиа-генераций</div>
+              <button class="primary-button" type="button" data-add-generation="media" data-amount="5">Выбрать</button>
+            </article>
+
+            <article class="plan-card">
+              <h3>Старт</h3>
+              <div class="plan-price">+10</div>
+              <div class="plan-caption">медиа-генераций</div>
+              <button class="primary-button" type="button" data-add-generation="media" data-amount="10">Выбрать</button>
+            </article>
+
+            <article class="plan-card featured">
+              <h3>Стандарт</h3>
+              <div class="plan-price">+15</div>
+              <div class="plan-caption">медиа-генераций</div>
+              <button class="primary-button" type="button" data-add-generation="media" data-amount="15">Выбрать</button>
+            </article>
+
+            <article class="plan-card">
+              <h3>Максимум</h3>
+              <div class="plan-price">+20</div>
+              <div class="plan-caption">медиа-генераций</div>
+              <button class="primary-button" type="button" data-add-generation="media" data-amount="20">Выбрать</button>
             </article>
           </div>
 
@@ -1365,14 +1398,11 @@ async function checkSession() {
         </section>
 
         <section class="card">
-          <h2 class="card-title">Последняя операция</h2>
-          <p class="card-description">История демонстрационных пополнений.</p>
-          <div id="balanceHistory" class="history-empty">
-            Пока операций нет.
-          </div>
+          <h2 class="card-title">История операций</h2>
+          <p class="card-description">Последние демонстрационные пополнения.</p>
+          <div id="balanceHistory" class="history-empty">Пока операций нет.</div>
         </section>
       </section>
-
       
       <!-- БЕЗОПАСНОСТЬ -->
       <section class="page" id="page-security">
