@@ -91,7 +91,7 @@ function renderSidebarProfile(user) {
   $("#menuToggle").addEventListener("click",()=>$("#sidebar").classList.toggle("sidebar-open"));
   document.addEventListener("click",e=>{if(window.innerWidth<=760 && $("#sidebar").classList.contains("sidebar-open") && !$("#sidebar").contains(e.target) && !$("#menuToggle").contains(e.target))$("#sidebar").classList.remove("sidebar-open");});
   const currentChat = () => chats.find(c=>c.id===activeChatId);
-  const modelName = () => ({chatgpt:"ChatGPT · Demo",deepseek:"DeepSeek · Demo",future:"Будущая модель · Demo"}[$("#modelSelect").value] || "ChatGPT · Demo");
+    const modelName = () => ({chatgpt:"ChatGPT · Demo",deepseek:"DeepSeek · Demo",gemini:"Google Gemini · Demo",future:"Будущая модель · Demo"}[$("#modelSelect").value] || "ChatGPT · Demo");
   const renderHistory = () => {
     const list=$("#historyList"); list.innerHTML="";
     chats.slice(0,12).forEach(c=>{
@@ -128,6 +128,10 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     icon.innerHTML = '<img src="./images/logos/deepseek.jpeg" alt="DeepSeek">';
     icon.classList.remove("openai");
     icon.classList.add("deepseek");
+  } else if (val === "gemini") {
+    icon.textContent = "✦";
+    icon.classList.remove("deepseek");
+    icon.classList.add("openai");
   } else if (val === "future") {
     icon.textContent = "✧";
     icon.classList.remove("deepseek");
