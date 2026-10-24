@@ -1886,9 +1886,15 @@ async function checkSession() {
       renderAvatar($("#editAvatar"), profile);
       renderAvatar($("#sidebarAvatar"), profile);
 
-      const tokens = getTokens();
-      $("#overviewBalance").textContent = formatNumber(tokens);
-      $("#balanceAmount").textContent = formatNumber(tokens);
+      
+      const textGenerations = getGenerations("text");
+      const mediaGenerations = getGenerations("media");
+
+      $("#overviewBalance").textContent =
+        formatNumber(textGenerations) + " / " + formatNumber(mediaGenerations);
+
+      $("#textBalance").textContent = formatNumber(textGenerations);
+      $("#mediaBalance").textContent = formatNumber(mediaGenerations);
     }
 
     function showMessage(element, text, isError = false) {
