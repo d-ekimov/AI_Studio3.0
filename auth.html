@@ -314,6 +314,9 @@
     </div>
 
     <form id="authForm">
+            <div id="turnstile-container"
+           style="margin: 0 0 16px; display: flex; justify-content: center;">
+            </div>
       <label class="field" id="nameField" hidden>
         <span class="field-label">Имя</span>
         <span class="input-wrap">
@@ -433,7 +436,7 @@
     </button>
   </main>
 
-   
+   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
