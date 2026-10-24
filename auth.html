@@ -781,8 +781,9 @@ authForm.addEventListener("submit", async (event) => {
       mfaChallengeId = null;
       await continueOrRequestMfa();
       return;
+      
     } else {
-            const { error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
         options: { captchaToken }
@@ -792,7 +793,7 @@ authForm.addEventListener("submit", async (event) => {
 
       await continueOrRequestMfa();
       return;
-    }
+     }
     } catch (error) {
     showNotice(error.message || "Не удалось выполнить авторизацию.", "error");
   } finally {
