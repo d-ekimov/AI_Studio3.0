@@ -1828,26 +1828,71 @@ async function checkSession() {
     }
 
     
-    function getGenerations(type) {
-      const key = type === "text"
-        ? "aiStudioTextGenerations"
-        : "aiStudioMediaGenerations";
+let balanceCache = {
+  text: 0,
+  media: 0
+};
 
-      try {
-        const stored = localStorage.getItem(key);
+let balanceHistoryCache = [];
+let balanceLoaded = false;
 
-        if (stored === null) {
-          localStorage.setItem(key, "0");
-          return 0;
-        }
+function getGenerations(type) {
+  return type === "text"
+    ? balanceCache.text
+    : balanceCache.media;
+}
 
-        const value = Number(stored);
-        return Number.isSafeInteger(value) && value >= 0 ? value : 0;
-      } catch (error) {
-        return 0;
-      }
-    }
+async function loadBalanceFromSupabase() {
+  const supabase = window.aiStudioSupabase;
 
+  if (!supabase) {
+    throw new Error("Клиент Supabase не найден.");
+  }
+
+  const { data: userData, error: userError } =
+    await supabase.auth.getUser();
+
+  if (userError) throw userError;
+
+  const user = userData.user;
+
+  if (!user) {
+    throw new Error("Пользователь не авторизован.");
+  }
+
+  const { data: balance, error: balanceError } = await supabase
+    .from("ai_studio_balances")
+    .select("text_generations, media_generations")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (balanceError) throw balanceError;
+
+  balanceCache = {
+    text: Number(balance?.text_generations ?? 0),
+    media: Number(balance?.media_generations ?? 0)
+  };
+
+  const { data: history, error: historyError } = await supabase
+    .from("ai_studio_balance_history")
+    .select("id, type, amount, operation, description, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (historyError) throw historyError;
+
+  balanceHistoryCache = (history || []).map((item) => ({
+    ...item,
+    date: new Date(item.created_at).toLocaleString("ru-RU")
+  }));
+
+  balanceLoaded = true;
+
+  renderProfile();
+  renderHistory();
+}
+    
     function formatNumber(value) {
       return value.toLocaleString("ru-RU");
     }
@@ -1961,53 +2006,168 @@ async function checkSession() {
     }
 
     function getHistory() {
-      try {
-        const data = JSON.parse(localStorage.getItem("aiStudioDemoHistory") || "[]");
-        return Array.isArray(data) ? data.slice(0, 10) : [];
-      } catch (error) {
-        return [];
-      }
+  return balanceHistoryCache;
+}
+
+function renderHistory() {
+  const container = $("#balanceHistory");
+  const history = getHistory();
+
+  container.replaceChildren();
+
+  if (history.length === 0) {
+    container.className = "history-empty";
+    container.textContent = balanceLoaded
+      ? "Пока операций нет. Выбери пакет генераций выше."
+      : "Загружаем историю операций…";
+    return;
+  }
+
+  container.className = "";
+
+  history.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "settings-row";
+
+    const details = document.createElement("div");
+    const title = document.createElement("strong");
+    const date = document.createElement("p");
+    const amount = document.createElement("span");
+
+    const isText = item.type === "text";
+
+    title.textContent = isText
+      ? "Текстовые генерации"
+      : "Медиа-генерации";
+
+    date.textContent = item.date || "";
+
+    amount.className = "badge";
+    amount.textContent =
+      "+" + formatNumber(Number(item.amount) || 0) +
+      (isText ? " текст." : " медиа");
+
+    details.append(title, date);
+    row.append(details, amount);
+    container.appendChild(row);
+  });
+}
+
+async function addGeneration(type, amount) {
+  if (
+    !["text", "media"].includes(type) ||
+    !Number.isSafeInteger(amount) ||
+    amount <= 0
+  ) {
+    showMessage(
+      $("#balanceMessage"),
+      "Некорректный пакет генераций.",
+      true
+    );
+    return;
+  }
+
+  const button = $("#balanceMessage");
+
+  try {
+    const supabase = window.aiStudioSupabase;
+
+    const { data: userData, error: userError } =
+      await supabase.auth.getUser();
+
+    if (userError) throw userError;
+    if (!userData.user) {
+      throw new Error("Сначала войди в аккаунт.");
     }
 
-    function renderHistory() {
-      const container = $("#balanceHistory");
-      const history = getHistory();
-
-      container.replaceChildren();
-
-      if (history.length === 0) {
-        container.className = "history-empty";
-        container.textContent = "Пока операций нет. Выбери пакет генераций выше.";
-        return;
-      }
-
-      container.className = "";
-
-      history.forEach((item) => {
-        const row = document.createElement("div");
-        row.className = "settings-row";
-
-        const details = document.createElement("div");
-        const title = document.createElement("strong");
-        const date = document.createElement("p");
-        const amount = document.createElement("span");
-
-        const isText = item.type === "text";
-        title.textContent = isText
-          ? "Текстовые генерации"
-          : "Медиа-генерации";
-        date.textContent = item.date || "";
-        amount.className = "badge";
-        amount.textContent =
-          "+" + formatNumber(Number(item.amount) || 0) +
-          (isText ? " текст." : " медиа");
-
-        details.append(title, date);
-        row.append(details, amount);
-        container.appendChild(row);
-      });
+    if (!balanceLoaded) {
+      await loadBalanceFromSupabase();
     }
 
+    const user = userData.user;
+    const current = getGenerations(type);
+
+    if (current + amount > Number.MAX_SAFE_INTEGER) {
+      throw new Error("Превышен допустимый предел.");
+    }
+
+    const nextBalance = current + amount;
+
+    const balanceUpdate = {
+      user_id: user.id,
+      text_generations:
+        type === "text" ? nextBalance : balanceCache.text,
+      media_generations:
+        type === "media" ? nextBalance : balanceCache.media,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error: saveBalanceError } = await supabase
+      .from("ai_studio_balances")
+      .upsert(balanceUpdate, { onConflict: "user_id" });
+
+    if (saveBalanceError) throw saveBalanceError;
+
+    const { data: historyItem, error: historyError } = await supabase
+      .from("ai_studio_balance_history")
+      .insert({
+        user_id: user.id,
+        type,
+        amount,
+        operation: "test",
+        description: "Тестовое начисление"
+      })
+      .select("id, type, amount, operation, description, created_at")
+      .single();
+
+    if (historyError) {
+      throw new Error(
+        "Баланс сохранён, но историю записать не удалось: " +
+        historyError.message
+      );
+    }
+
+    balanceCache[type] = nextBalance;
+
+    balanceHistoryCache.unshift({
+      ...historyItem,
+      date: new Date(historyItem.created_at)
+        .toLocaleString("ru-RU")
+    });
+
+    balanceHistoryCache = balanceHistoryCache.slice(0, 10);
+
+    renderProfile();
+    renderHistory();
+
+    const label = type === "text"
+      ? "текстовых генераций"
+      : "медиа-генераций";
+
+    showMessage(
+      button,
+      "Добавлено " + amount + " " + label +
+      ". Это тестовое начисление, реального платежа не было."
+    );
+  } catch (error) {
+    console.error("Ошибка сохранения баланса:", error);
+
+    showMessage(
+      button,
+      error.message || "Не удалось сохранить баланс в Supabase.",
+      true
+    );
+
+    try {
+      await loadBalanceFromSupabase();
+    } catch (reloadError) {
+      console.error(
+        "Не удалось обновить баланс:",
+        reloadError
+      );
+    }
+  }
+} 
     function addGeneration(type, amount) {
       if (
         !["text", "media"].includes(type) ||
@@ -2917,10 +3077,19 @@ $("#logoutAllButton").addEventListener("click", async () => {
     }
 
     // Начальная загрузка
-    renderProfile();
-    renderHistory();
-    initSecuritySettings();
+renderProfile();
+renderHistory();
+initSecuritySettings();
 
+loadBalanceFromSupabase().catch((error) => {
+  console.error("Не удалось загрузить баланс из Supabase:", error);
+
+  showMessage(
+    $("#balanceMessage"),
+    "Не удалось загрузить баланс с сервера. Обнови страницу или войди в аккаунт заново.",
+    true
+  );
+});
     window.addEventListener("load", syncAvatarFromAccount);
     // Если пользователь вернулся на широком экране, закрываем мобильное меню
     window.addEventListener("resize", () => {
