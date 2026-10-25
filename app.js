@@ -349,6 +349,127 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   });
   updateCompareModel(1);
   updateCompareModel(2);
+  
+  // ===== МУЛЬТИ-ИИ: ОБЩИЙ ДИАЛОГ =====
+
+  const multiModels = {
+    chatgpt: {
+      name: "ChatGPT",
+      reply: (prompt) =>
+        "Предлагаю начать со структуры задачи: определить цель, выделить основные требования и разбить решение на конкретные шаги.\n\nПо запросу: «" +
+        prompt.slice(0, 180) +
+        "»\n\nЭто демонстрационный ответ."
+    },
+    deepseek: {
+      name: "DeepSeek",
+      reply: (prompt) =>
+        "Я бы дополнительно проверил ограничения, возможные риски и эффективность каждого шага. Затем сравнил бы варианты и выбрал наиболее практичный.\n\nПо запросу: «" +
+        prompt.slice(0, 180) +
+        "»\n\nЭто демонстрационный ответ."
+    },
+    gemini: {
+      name: "Gemini",
+      reply: (prompt) =>
+        "Предлагаю рассмотреть задачу с другой стороны, найти альтернативные идеи и объединить наиболее сильные решения в один план.\n\nПо запросу: «" +
+        prompt.slice(0, 180) +
+        "»\n\nЭто демонстрационный ответ."
+    }
+  };
+
+  const multiDelay = (ms) =>
+    new Promise(resolve => setTimeout(resolve, ms));
+
+  function addMultiMessage(speaker, content, role = "assistant") {
+    const box = $("#multiMessages");
+
+    const welcome = $(".multi-welcome", box);
+    if (welcome) welcome.remove();
+
+    const row = document.createElement("div");
+    row.className = "multi-message-row " + role;
+
+    const name = document.createElement("strong");
+    name.className = "multi-message-speaker";
+    name.textContent = speaker;
+
+    const text = document.createElement("div");
+    text.className = "multi-message-content";
+    text.textContent = content;
+
+    row.append(name, text);
+    box.appendChild(row);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function runMultiDiscussion(prompt, models, sequential) {
+    const runModel = async (key, index) => {
+      if (sequential && index > 0) {
+        await multiDelay(700 * index);
+      }
+
+      addMultiMessage(
+        multiModels[key].name,
+        multiModels[key].reply(prompt)
+      );
+    };
+
+    if (sequential) {
+      for (let i = 0; i < models.length; i++) {
+        await runModel(models[i], i);
+      }
+    } else {
+      await Promise.all(models.map((key, index) =>
+        runModel(key, index)
+      ));
+    }
+  }
+
+  $("#multiChatForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const input = $("#multiMessageInput");
+    const prompt = input.value.trim();
+
+    if (!prompt) {
+      toast("Сначала напиши сообщение для общего чата.");
+      input.focus();
+      return;
+    }
+
+    const selectedModels = $$(
+      'input[name="multiModel"]:checked'
+    ).map(input => input.value);
+
+    if (!selectedModels.length) {
+      toast("Выбери хотя бы одного участника.");
+      return;
+    }
+
+    const sendButton = $("#multiChatForm button[type='submit']");
+
+    input.disabled = true;
+    sendButton.disabled = true;
+
+    addMultiMessage("Ты", prompt, "user");
+    input.value = "";
+
+    try {
+      const sequential = $("#multiAutoMode").checked;
+
+      await runMultiDiscussion(
+        prompt,
+        selectedModels,
+        sequential
+      );
+    } catch (error) {
+      console.error("Ошибка Мульти-ИИ:", error);
+      toast("Не удалось выполнить демонстрационный диалог.");
+    } finally {
+      input.disabled = false;
+      sendButton.disabled = false;
+      input.focus();
+    }
+  });
   const renderProjects=()=>{
     const grid=$("#projectGrid");grid.innerHTML="";
     projects.forEach((p,i)=>{const card=document.createElement("article");card.className="project-card";card.innerHTML=`<div class="project-icon ${p.color||"purple-bg"}">${p.icon||"✧"}</div><span class="project-state ${p.state==="Идея"?"quiet-state":""}">${p.state||"В работе"}</span><h3></h3><p></p><div class="project-meta"><span>◷ Локально</span><span>${Number(p.tasks)||0} задач</span></div><button class="text-action">Открыть проект <span>→</span></button>`;$("h3",card).textContent=p.name;$("p",card).textContent=p.desc;$(".text-action",card).addEventListener("click",()=>openDialog(p.name,"Проект создан в прототипе. Позже здесь появятся связанные чаты, файлы и задачи.","Понятно",()=>{}));grid.appendChild(card);});
