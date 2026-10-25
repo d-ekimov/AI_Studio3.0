@@ -106,7 +106,34 @@
       </div>
       <span class="multi-status">DEMO</span>
     </div>
+      <div class="multi-participants">
+        <div class="multi-participants-heading">
+          <strong>Участники диалога</strong>
+          <span>Выбери команду</span>
+        </div>
 
+        <div class="multi-participant-options">
+          <label>
+            <input type="checkbox" name="multiModel" value="chatgpt" checked>
+            <span>ChatGPT</span>
+          </label>
+
+          <label>
+            <input type="checkbox" name="multiModel" value="deepseek" checked>
+            <span>DeepSeek</span>
+          </label>
+
+          <label>
+            <input type="checkbox" name="multiModel" value="gemini">
+            <span>Gemini</span>
+          </label>
+        </div>
+
+        <label class="multi-auto-mode">
+          <input type="checkbox" id="multiAutoMode" checked>
+          <span>Последовательное обсуждение</span>
+        </label>
+      </div>
     <div class="multi-chat-messages" id="multiMessages">
       <div class="multi-welcome">
         <div class="multi-welcome-icon">✳</div>
