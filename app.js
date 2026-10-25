@@ -350,7 +350,9 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   updateCompareModel(1);
   updateCompareModel(2);
   
-  // ===== МУЛЬТИ-ИИ: ОБЩИЙ ДИАЛОГ =====
+  // ===== МУЛЬТИ-ИИ: ОБЩИЙ ДИАЛОГ С СОХРАНЕНИЕМ =====
+
+  let currentMultiChatId = null;
 
   const multiModels = {
     chatgpt: {
@@ -381,8 +383,8 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
   function addMultiMessage(speaker, content, role = "assistant") {
     const box = $("#multiMessages");
-
     const welcome = $(".multi-welcome", box);
+
     if (welcome) welcome.remove();
 
     const row = document.createElement("div");
@@ -401,16 +403,165 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     box.scrollTop = box.scrollHeight;
   }
 
+  // Сохраняем одно сообщение в Supabase
+  async function saveMultiMessage(chatId, role, speaker, content, modelKey = null) {
+    const { error } = await supabase
+      .from("multi_ai_messages")
+      .insert({
+        chat_id: chatId,
+        role: role,
+        model_key: modelKey,
+        speaker: speaker,
+        content: content
+      });
+
+    if (error) {
+      console.error("Ошибка сохранения сообщения Мульти-ИИ:", error);
+      throw error;
+    }
+  }
+
+  // Создаём диалог при первом сообщении
+  async function createMultiChat(prompt, models, sequential) {
+    if (!currentUser) {
+      throw new Error("Пользователь не авторизован.");
+    }
+
+    const title = prompt.length > 40
+      ? prompt.slice(0, 40) + "…"
+      : prompt;
+
+    const { data, error } = await supabase
+      .from("multi_ai_chats")
+      .insert({
+        user_id: currentUser.id,
+        title: title,
+        selected_models: models,
+        sequential_mode: sequential
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Ошибка создания диалога Мульти-ИИ:", error);
+      throw error;
+    }
+
+    currentMultiChatId = data.id;
+    return data.id;
+  }
+
+  // Обновляем настройки и дату диалога
+  async function updateMultiChat(models, sequential) {
+    if (!currentMultiChatId) return;
+
+    const { error } = await supabase
+      .from("multi_ai_chats")
+      .update({
+        selected_models: models,
+        sequential_mode: sequential,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", currentMultiChatId)
+      .eq("user_id", currentUser.id);
+
+    if (error) {
+      console.error("Ошибка обновления диалога Мульти-ИИ:", error);
+      throw error;
+    }
+  }
+
+  // Загружаем последний диалог пользователя
+  async function loadLatestMultiChat() {
+    if (!currentUser) return;
+
+    const { data: chat, error: chatError } = await supabase
+      .from("multi_ai_chats")
+      .select("id, title, selected_models, sequential_mode")
+      .eq("user_id", currentUser.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (chatError) {
+      console.error("Ошибка загрузки диалога Мульти-ИИ:", chatError);
+      toast("Не удалось загрузить историю Мульти-ИИ.");
+      return;
+    }
+
+    if (!chat) {
+      currentMultiChatId = null;
+      return;
+    }
+
+    const { data: messages, error: messagesError } = await supabase
+      .from("multi_ai_messages")
+      .select("id, role, model_key, speaker, content, created_at")
+      .eq("chat_id", chat.id)
+      .order("created_at", { ascending: true });
+
+    if (messagesError) {
+      console.error("Ошибка загрузки сообщений Мульти-ИИ:", messagesError);
+      toast("Не удалось загрузить сообщения Мульти-ИИ.");
+      return;
+    }
+
+    currentMultiChatId = chat.id;
+
+    // Восстанавливаем участников
+    const selectedModels = Array.isArray(chat.selected_models)
+      ? chat.selected_models
+      : ["chatgpt", "deepseek"];
+
+    $$('input[name="multiModel"]').forEach(input => {
+      input.checked = selectedModels.includes(input.value);
+    });
+
+    $("#multiAutoMode").checked = chat.sequential_mode !== false;
+
+    // Восстанавливаем переписку
+    const box = $("#multiMessages");
+    box.innerHTML = "";
+
+    if (!messages || messages.length === 0) {
+      box.innerHTML = `
+        <div class="multi-welcome">
+          <div class="multi-welcome-icon">✳</div>
+          <h2>Продолжим диалог</h2>
+          <p>Напиши сообщение, чтобы продолжить работу команды ИИ.</p>
+        </div>
+      `;
+      return;
+    }
+
+    messages.forEach(message => {
+      addMultiMessage(
+        message.speaker,
+        message.content,
+        message.role === "user" ? "user" : "assistant"
+      );
+    });
+  }
+
+  // Генерируем ответы и сохраняем каждый из них
   async function runMultiDiscussion(prompt, models, sequential) {
     const runModel = async (key, index) => {
       if (sequential && index > 0) {
         await multiDelay(700 * index);
       }
 
-      addMultiMessage(
-        multiModels[key].name,
-        multiModels[key].reply(prompt)
+      const speaker = multiModels[key].name;
+      const answer = multiModels[key].reply(prompt);
+
+      await saveMultiMessage(
+        currentMultiChatId,
+        "assistant",
+        speaker,
+        answer,
+        key
       );
+
+      addMultiMessage(speaker, answer);
     };
 
     if (sequential) {
@@ -418,9 +569,9 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
         await runModel(models[i], i);
       }
     } else {
-      await Promise.all(models.map((key, index) =>
-        runModel(key, index)
-      ));
+      await Promise.all(
+        models.map((key, index) => runModel(key, index))
+      );
     }
   }
 
@@ -436,6 +587,12 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       return;
     }
 
+    if (!currentUser) {
+      toast("Войди в аккаунт, чтобы сохранять историю Мульти-ИИ.");
+      window.location.href = "auth.html";
+      return;
+    }
+
     const selectedModels = $$(
       'input[name="multiModel"]:checked'
     ).map(input => input.value);
@@ -446,24 +603,41 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }
 
     const sendButton = $("#multiChatForm button[type='submit']");
+    const sequential = $("#multiAutoMode").checked;
 
     input.disabled = true;
     sendButton.disabled = true;
 
-    addMultiMessage("Ты", prompt, "user");
-    input.value = "";
-
     try {
-      const sequential = $("#multiAutoMode").checked;
+      // Создаём новый диалог при первом сообщении
+      if (!currentMultiChatId) {
+        await createMultiChat(prompt, selectedModels, sequential);
+      } else {
+        await updateMultiChat(selectedModels, sequential);
+      }
 
+      // Сохраняем сообщение пользователя
+      await saveMultiMessage(
+        currentMultiChatId,
+        "user",
+        "Ты",
+        prompt
+      );
+
+      addMultiMessage("Ты", prompt, "user");
+      input.value = "";
+
+      // Сохраняем ответы выбранных моделей
       await runMultiDiscussion(
         prompt,
         selectedModels,
         sequential
       );
+
+      toast("Диалог Мульти-ИИ сохранён.");
     } catch (error) {
       console.error("Ошибка Мульти-ИИ:", error);
-      toast("Не удалось выполнить демонстрационный диалог.");
+      toast("Не удалось сохранить диалог. Проверь подключение к Supabase.");
     } finally {
       input.disabled = false;
       sendButton.disabled = false;
