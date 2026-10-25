@@ -1861,6 +1861,15 @@ async function loadBalanceFromSupabase() {
     throw new Error("Пользователь не авторизован.");
   }
 
+  // Запускаем загрузку истории сразу, не дожидаясь баланса.
+  const historyPromise = supabase
+    .from("ai_studio_balance_history")
+    .select("id, type, amount, operation, description, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  // Сначала загружаем баланс.
   const { data: balance, error: balanceError } = await supabase
     .from("ai_studio_balances")
     .select("text_generations, media_generations")
@@ -1874,12 +1883,13 @@ async function loadBalanceFromSupabase() {
     media: Number(balance?.media_generations ?? 0)
   };
 
-  const { data: history, error: historyError } = await supabase
-    .from("ai_studio_balance_history")
-    .select("id, type, amount, operation, description, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(10);
+  balanceLoaded = true;
+
+  // Показываем баланс, не ожидая завершения загрузки истории.
+  renderProfile();
+
+  // Дожидаемся истории, которая уже загружается параллельно.
+  const { data: history, error: historyError } = await historyPromise;
 
   if (historyError) throw historyError;
 
@@ -1888,9 +1898,6 @@ async function loadBalanceFromSupabase() {
     date: new Date(item.created_at).toLocaleString("ru-RU")
   }));
 
-  balanceLoaded = true;
-
-  renderProfile();
   renderHistory();
 }
     
