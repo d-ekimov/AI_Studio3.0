@@ -2168,15 +2168,6 @@ async function addGeneration(type, amount) {
     }
   }
 } 
-    function addGeneration(type, amount) {
-      if (
-        !["text", "media"].includes(type) ||
-        !Number.isSafeInteger(amount) ||
-        amount <= 0
-      ) {
-        showMessage($("#balanceMessage"), "Некорректный пакет генераций.", true);
-        return;
-      }
 
       const key = type === "text"
         ? "aiStudioTextGenerations"
