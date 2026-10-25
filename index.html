@@ -19,6 +19,7 @@
       <nav class="main-nav" aria-label="Главная навигация">
         <button class="nav-item active" data-page="chat"><span>◉</span> Чат</button>
         <button class="nav-item" data-page="compare"><span>◫</span> Несколько ИИ <span class="nav-tag">NEW</span></button>
+        <button class="nav-item" data-page="multi"><span>✳</span> Мульти-ИИ <span class="nav-tag">NEW</span></button>
         <button class="nav-item" data-page="projects"><span>▦</span> Проекты</button>
         <button class="nav-item" data-page="tasks"><span>☷</span> Задачи</button>
         <button class="nav-item" data-page="models"><span>✧</span> Модели</button>
@@ -88,6 +89,58 @@
           </article>
         </div>
         <div class="info-banner"><span>✦</span><div><strong>Скоро — настоящая совместная работа</strong><p>После подключения API можно будет получать реальные ответы и передавать результат одной модели другой на проверку.</p></div></div>
+      </section>
+      <section class="page" id="page-multi">
+  <div class="page-header">
+    <div class="eyebrow">ОБЩЕЕ ПРОСТРАНСТВО</div>
+    <h1>Мульти-ИИ <span>в одной комнате.</span></h1>
+    <p>Общий диалог, в котором несколько ИИ смогут вместе работать над твоими задачами.</p>
+  </div>
+
+  <div class="multi-chat-panel">
+    <div class="multi-chat-top">
+      <div class="multi-chat-icon">✳</div>
+      <div>
+        <strong>Общий диалог</strong>
+        <small>Совместная работа нескольких ИИ</small>
+      </div>
+      <span class="multi-status">DEMO</span>
+    </div>
+
+    <div class="multi-chat-messages" id="multiMessages">
+      <div class="multi-welcome">
+        <div class="multi-welcome-icon">✳</div>
+        <h2>Соберём команду ИИ</h2>
+        <p>
+          Здесь будет общий чат, где несколько ИИ смогут
+          обсуждать задачи, предлагать идеи и дополнять ответы друг друга.
+        </p>
+        <span>Участников можно будет добавлять прямо во время диалога.</span>
+      </div>
+    </div>
+
+    <form class="multi-composer" id="multiChatForm">
+      <textarea
+        id="multiMessageInput"
+        rows="2"
+        maxlength="6000"
+        placeholder="Напиши сообщение для общего чата…"
+        aria-label="Сообщение для общего чата"
+      ></textarea>
+      <div class="multi-composer-bottom">
+        <span>Демонстрационный режим · API пока не подключён</span>
+        <button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="info-banner">
+    <span>✦</span>
+    <div>
+      <strong>Несколько мнений — одна общая задача</strong>
+      <p>Сначала создаём основу чата. Управление участниками и порядок общения добавим следующими этапами.</p>
+    </div>
+  </div>
       </section>
       <section class="page" id="page-projects">
         <div class="page-header page-header-row"><div><div class="eyebrow">ТВОИ РАБОЧИЕ ПРОСТРАНСТВА</div><h1>Проекты <span>и идеи.</span></h1><p>Собирай чаты и задачи вокруг одной цели.</p></div><button class="primary-btn" id="addProject">＋ Новый проект</button></div>
