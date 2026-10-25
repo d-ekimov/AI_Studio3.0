@@ -2169,52 +2169,6 @@ async function addGeneration(type, amount) {
   }
 } 
 
-      const key = type === "text"
-        ? "aiStudioTextGenerations"
-        : "aiStudioMediaGenerations";
-      const current = getGenerations(type);
-
-      if (current + amount > Number.MAX_SAFE_INTEGER) {
-        showMessage($("#balanceMessage"), "Превышен допустимый предел.", true);
-        return;
-      }
-
-      try {
-        localStorage.setItem(key, String(current + amount));
-
-        const history = getHistory();
-        history.unshift({
-          type,
-          amount,
-          date: new Date().toLocaleString("ru-RU")
-        });
-
-        localStorage.setItem(
-          "aiStudioDemoHistory",
-          JSON.stringify(history.slice(0, 10))
-        );
-
-        renderProfile();
-        renderHistory();
-
-        const label = type === "text"
-          ? "текстовых генераций"
-          : "медиа-генераций";
-
-        showMessage(
-          $("#balanceMessage"),
-          "Добавлено " + amount + " " + label +
-          ". Реального платежа не было."
-        );
-      } catch (error) {
-        showMessage(
-          $("#balanceMessage"),
-          "Не удалось сохранить изменения в браузере.",
-          true
-        );
-      }
-    }
-
     // Навигация
     $$(".nav-button[data-page]").forEach((button) => {
       button.addEventListener("click", () => navigate(button.dataset.page));
