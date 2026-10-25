@@ -14,6 +14,7 @@
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
   window.aiStudioSupabase = supabase;
+  window.dispatchEvent(new Event("aiStudioSupabaseReady"));
 
   
 async function checkSession() {
@@ -3026,15 +3027,18 @@ renderProfile();
 renderHistory();
 initSecuritySettings();
 
-loadBalanceFromSupabase().catch((error) => {
-  console.error("Не удалось загрузить баланс из Supabase:", error);
+window.addEventListener("aiStudioSupabaseReady", () => {
+  loadBalanceFromSupabase().catch((error) => {
+    console.error("Не удалось загрузить баланс из Supabase:", error);
 
-  showMessage(
-    $("#balanceMessage"),
-    "Не удалось загрузить баланс с сервера. Обнови страницу или войди в аккаунт заново.",
-    true
-  );
-});
+    showMessage(
+      $("#balanceMessage"),
+      "Не удалось загрузить баланс с сервера: " +
+        (error.message || "неизвестная ошибка"),
+      true
+    );
+  });
+}, { once: true });
     window.addEventListener("load", syncAvatarFromAccount);
     // Если пользователь вернулся на широком экране, закрываем мобильное меню
     window.addEventListener("resize", () => {
