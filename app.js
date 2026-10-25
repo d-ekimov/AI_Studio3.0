@@ -8,7 +8,7 @@
     SUPABASE_URL,
     SUPABASE_KEY
   );
-  const pageNames = {chat:"Чат", compare:"Несколько ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
+  const pageNames = {chat:"Чат", compare:"Несколько ИИ", multi:"Мульти-ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
   const defaultTasks = [
     {id:1,title:"Продумать структуру AI Studio",desc:"Определить основные разделы и переходы",done:true,tag:"Планирование"},
     {id:2,title:"Собрать адаптивный интерфейс",desc:"Проверить отображение на телефоне и компьютере",done:false,tag:"Дизайн"},
