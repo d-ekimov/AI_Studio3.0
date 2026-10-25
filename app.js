@@ -716,6 +716,8 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     currentUser = session.user;
     renderSidebarProfile(currentUser);
     
+    await loadLatestMultiChat();
+    
     const { data: chatRows, error: chatError } = await supabase
       .from("ai_chats")
       .select("id, title, model, updated_at")
