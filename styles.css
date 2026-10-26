@@ -528,3 +528,46 @@ padding: 12px;
     flex: 0 0 42px;
   }
 }
+/* ===== УДАЛЕНИЕ ЧАТОВ В ГЛАВНОМ МЕНЮ ===== */
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.history-row .history-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.delete-history-chat {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #ff9eaf;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.delete-history-chat:hover {
+  background: #482631;
+  border-color: #713b4a;
+  color: #ffffff;
+}
+
+.light-theme .delete-history-chat {
+  color: #b83e5a;
+}
+
+.light-theme .delete-history-chat:hover {
+  background: #fbe7ec;
+  border-color: #e8a8b7;
+}
