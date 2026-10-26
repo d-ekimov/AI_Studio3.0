@@ -471,26 +471,63 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }
   }
 
-  // Загружаем последний диалог пользователя
-  async function loadLatestMultiChat() {
+  // Загружаем список диалогов Мульти-ИИ
+  async function loadMultiChatList() {
+    if (!currentUser) return;
+
+    const list = $("#multiChatList");
+
+    const { data: chats, error } = await supabase
+      .from("multi_ai_chats")
+      .select("id, title, updated_at")
+      .eq("user_id", currentUser.id)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("Ошибка загрузки списка Мульти-ИИ:", error);
+      list.textContent = "Не удалось загрузить диалоги.";
+      return;
+    }
+
+    list.innerHTML = "";
+
+    if (!chats || chats.length === 0) {
+      list.textContent = "Пока нет сохранённых диалогов.";
+      return;
+    }
+
+    chats.forEach(chat => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "multi-chat-list-item";
+      button.textContent = chat.title || "Новый диалог";
+
+      if (chat.id === currentMultiChatId) {
+        button.classList.add("active");
+      }
+
+      button.addEventListener("click", async () => {
+        await openMultiChat(chat.id);
+      });
+
+      list.appendChild(button);
+    });
+  }
+
+  // Открываем выбранный диалог
+  async function openMultiChat(chatId) {
     if (!currentUser) return;
 
     const { data: chat, error: chatError } = await supabase
       .from("multi_ai_chats")
       .select("id, title, selected_models, sequential_mode")
+      .eq("id", chatId)
       .eq("user_id", currentUser.id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
 
-    if (chatError) {
-      console.error("Ошибка загрузки диалога Мульти-ИИ:", chatError);
-      toast("Не удалось загрузить историю Мульти-ИИ.");
-      return;
-    }
-
-    if (!chat) {
-      currentMultiChatId = null;
+    if (chatError || !chat) {
+      console.error("Ошибка открытия диалога:", chatError);
+      toast("Не удалось открыть диалог.");
       return;
     }
 
@@ -501,14 +538,13 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       .order("created_at", { ascending: true });
 
     if (messagesError) {
-      console.error("Ошибка загрузки сообщений Мульти-ИИ:", messagesError);
-      toast("Не удалось загрузить сообщения Мульти-ИИ.");
+      console.error("Ошибка загрузки сообщений:", messagesError);
+      toast("Не удалось загрузить сообщения.");
       return;
     }
 
     currentMultiChatId = chat.id;
 
-    // Восстанавливаем участников
     const selectedModels = Array.isArray(chat.selected_models)
       ? chat.selected_models
       : ["chatgpt", "deepseek"];
@@ -519,7 +555,6 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
     $("#multiAutoMode").checked = chat.sequential_mode !== false;
 
-    // Восстанавливаем переписку
     const box = $("#multiMessages");
     box.innerHTML = "";
 
@@ -531,17 +566,62 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
           <p>Напиши сообщение, чтобы продолжить работу команды ИИ.</p>
         </div>
       `;
+    } else {
+      messages.forEach(message => {
+        addMultiMessage(
+          message.speaker,
+          message.content,
+          message.role === "user" ? "user" : "assistant"
+        );
+      });
+    }
+
+    await loadMultiChatList();
+  }
+
+  // Загружаем список и последний диалог
+  async function loadLatestMultiChat() {
+    if (!currentUser) return;
+
+    await loadMultiChatList();
+
+    const { data: chat, error } = await supabase
+      .from("multi_ai_chats")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Ошибка загрузки последнего диалога:", error);
       return;
     }
 
-    messages.forEach(message => {
-      addMultiMessage(
-        message.speaker,
-        message.content,
-        message.role === "user" ? "user" : "assistant"
-      );
-    });
+    if (chat) {
+      await openMultiChat(chat.id);
+    } else {
+      currentMultiChatId = null;
+    }
   }
+
+  // Создаём новый пустой диалог
+  $("#newMultiChatBtn").addEventListener("click", () => {
+    currentMultiChatId = null;
+
+    const box = $("#multiMessages");
+    box.innerHTML = `
+      <div class="multi-welcome">
+        <div class="multi-welcome-icon">✳</div>
+        <h2>Новый диалог</h2>
+        <p>Напиши сообщение, чтобы начать новую переписку.</p>
+      </div>
+    `;
+
+    $("#multiMessageInput").value = "";
+    loadMultiChatList();
+    $("#multiMessageInput").focus();
+  });
 
   // Генерируем ответы и сохраняем каждый из них
   async function runMultiDiscussion(prompt, models, sequential) {
