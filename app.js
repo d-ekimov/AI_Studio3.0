@@ -471,7 +471,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }
   }
 
-  // Загружаем список диалогов Мульти-ИИ
+    // Загружаем список диалогов Мульти-ИИ
   async function loadMultiChatList() {
     if (!currentUser) return;
 
@@ -497,20 +497,69 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }
 
     chats.forEach(chat => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "multi-chat-list-item";
-      button.textContent = chat.title || "Новый диалог";
+      const row = document.createElement("div");
+      row.className = "multi-chat-row";
+
+      const openButton = document.createElement("button");
+      openButton.type = "button";
+      openButton.className = "multi-chat-list-item";
+      openButton.textContent = chat.title || "Новый диалог";
 
       if (chat.id === currentMultiChatId) {
-        button.classList.add("active");
+        openButton.classList.add("active");
       }
 
-      button.addEventListener("click", async () => {
+      openButton.addEventListener("click", async () => {
         await openMultiChat(chat.id);
       });
 
-      list.appendChild(button);
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "delete-multi-chat-btn";
+      deleteButton.textContent = "×";
+      deleteButton.title = "Удалить диалог";
+      deleteButton.setAttribute("aria-label", "Удалить диалог");
+
+      deleteButton.addEventListener("click", async () => {
+        const confirmed = confirm(
+          `Удалить диалог «${chat.title || "Новый диалог"}»?\n\nЭто действие нельзя отменить.`
+        );
+
+        if (!confirmed) return;
+
+        const { error: deleteError } = await supabase
+          .from("multi_ai_chats")
+          .delete()
+          .eq("id", chat.id)
+          .eq("user_id", currentUser.id);
+
+        if (deleteError) {
+          console.error("Ошибка удаления диалога:", deleteError);
+          toast("Не удалось удалить диалог.");
+          return;
+        }
+
+        if (currentMultiChatId === chat.id) {
+          currentMultiChatId = null;
+
+          $("#multiMessages").innerHTML = `
+            <div class="multi-welcome">
+              <div class="multi-welcome-icon">✳</div>
+              <h2>Новый диалог</h2>
+              <p>Напиши сообщение, чтобы начать новую переписку.</p>
+            </div>
+          `;
+
+          $("#multiMessageInput").value = "";
+        }
+
+        await loadMultiChatList();
+        toast("Диалог удалён.");
+      });
+
+      row.appendChild(openButton);
+      row.appendChild(deleteButton);
+      list.appendChild(row);
     });
   }
 
@@ -604,7 +653,47 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       currentMultiChatId = null;
     }
   }
+  
+  // Удаляем все диалоги Мульти-ИИ текущего пользователя
+  $("#deleteAllMultiChatsBtn").addEventListener("click", async () => {
+    if (!currentUser) {
+      toast("Сначала войди в аккаунт.");
+      return;
+    }
 
+    const confirmed = confirm(
+      "Удалить ВСЕ диалоги Мульти-ИИ?\n\nВся история этих диалогов будет удалена. Это действие нельзя отменить."
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("multi_ai_chats")
+      .delete()
+      .eq("user_id", currentUser.id);
+
+    if (error) {
+      console.error("Ошибка удаления всех диалогов:", error);
+      toast("Не удалось удалить диалоги.");
+      return;
+    }
+
+    currentMultiChatId = null;
+
+    $("#multiMessages").innerHTML = `
+      <div class="multi-welcome">
+        <div class="multi-welcome-icon">✳</div>
+        <h2>Новый диалог</h2>
+        <p>Напиши сообщение, чтобы начать новую переписку.</p>
+      </div>
+    `;
+
+    $("#multiMessageInput").value = "";
+
+    await loadMultiChatList();
+    toast("Все диалоги удалены.");
+  });
+  
   // Создаём новый пустой диалог
   $("#newMultiChatBtn").addEventListener("click", () => {
     currentMultiChatId = null;
