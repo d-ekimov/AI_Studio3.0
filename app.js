@@ -713,7 +713,8 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
         selectedModels,
         sequential
       );
-
+      await loadMultiChatList();
+      
     } catch (error) {
       console.error("Ошибка Мульти-ИИ:", error);
       toast("Не удалось сохранить диалог. Проверь подключение к Supabase.");
