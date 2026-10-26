@@ -634,7 +634,6 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
         sequential
       );
 
-      toast("Диалог Мульти-ИИ сохранён.");
     } catch (error) {
       console.error("Ошибка Мульти-ИИ:", error);
       toast("Не удалось сохранить диалог. Проверь подключение к Supabase.");
