@@ -92,13 +92,77 @@ function renderSidebarProfile(user) {
   document.addEventListener("click",e=>{if(window.innerWidth<=760 && $("#sidebar").classList.contains("sidebar-open") && !$("#sidebar").contains(e.target) && !$("#menuToggle").contains(e.target))$("#sidebar").classList.remove("sidebar-open");});
   const currentChat = () => chats.find(c=>c.id===activeChatId);
     const modelName = () => ({chatgpt:"ChatGPT · Demo",deepseek:"DeepSeek · Demo",gemini:"Google Gemini · Demo",future:"Будущая модель · Demo"}[$("#modelSelect").value] || "ChatGPT · Demo");
-  const renderHistory = () => {
-    const list=$("#historyList"); list.innerHTML="";
-    chats.slice(0,12).forEach(c=>{
-      const b=document.createElement("button"); b.className="history-item"+(c.id===activeChatId?" selected":""); b.innerHTML="<span>◌</span><em></em>"; $("em",b).textContent=c.title;
-      b.addEventListener("click",()=>{activeChatId=c.id;renderChat();renderHistory();go("chat");}); list.appendChild(b);
+    const renderHistory = () => {
+    const list = $("#historyList");
+    list.innerHTML = "";
+
+    chats.slice(0, 12).forEach(c => {
+      const row = document.createElement("div");
+      row.className = "history-row";
+
+      const openButton = document.createElement("button");
+      openButton.type = "button";
+      openButton.className =
+        "history-item" + (c.id === activeChatId ? " selected" : "");
+      openButton.innerHTML = "<span>◌</span><em></em>";
+      $("em", openButton).textContent = c.title || "Новый чат";
+
+      openButton.addEventListener("click", () => {
+        activeChatId = c.id;
+        renderChat();
+        renderHistory();
+        go("chat");
+      });
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "delete-history-chat";
+      deleteButton.textContent = "×";
+      deleteButton.title = "Удалить чат";
+      deleteButton.setAttribute("aria-label", "Удалить чат");
+
+      deleteButton.addEventListener("click", async () => {
+        const confirmed = confirm(
+          `Удалить чат «${c.title || "Новый чат"}»?\n\nЭто действие нельзя отменить.`
+        );
+
+        if (!confirmed) return;
+
+        const { error } = await supabase
+          .from("ai_chats")
+          .delete()
+          .eq("id", c.id)
+          .eq("user_id", currentUser.id);
+
+        if (error) {
+          console.error("Ошибка удаления чата:", error);
+          toast("Не удалось удалить чат.");
+          return;
+        }
+
+        chats = chats.filter(chat => chat.id !== c.id);
+
+        if (activeChatId === c.id) {
+          activeChatId = null;
+          renderChat();
+        }
+
+        renderHistory();
+        toast("Чат удалён.");
+      });
+
+      row.appendChild(openButton);
+      row.appendChild(deleteButton);
+      list.appendChild(row);
     });
-    if(!chats.length){const p=document.createElement("div");p.style.cssText="color:#686b7e;font-size:11px;padding:8px 10px";p.textContent="Твои чаты появятся здесь";list.appendChild(p);}
+
+    if (!chats.length) {
+      const p = document.createElement("div");
+      p.style.cssText =
+        "color:#686b7e;font-size:11px;padding:8px 10px";
+      p.textContent = "Твои чаты появятся здесь";
+      list.appendChild(p);
+    }
   };
   const renderChat = () => {
     const c=currentChat(); const box=$("#messages");box.innerHTML="";
