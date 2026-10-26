@@ -457,3 +457,74 @@ padding: 12px;
     max-width: 75%;
   }
 }
+
+/* ===== КНОПКИ УДАЛЕНИЯ ДИАЛОГОВ МУЛЬТИ-ИИ ===== */
+
+.multi-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#deleteAllMultiChatsBtn {
+  padding: 9px 12px;
+  border: 1px solid #713b4a;
+  border-radius: 10px;
+  background: #30202a;
+  color: #ffb7c5;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#deleteAllMultiChatsBtn:hover {
+  background: #482631;
+  border-color: #a84e65;
+}
+
+.multi-chat-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.multi-chat-row .multi-chat-list-item {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.delete-multi-chat-btn {
+  flex: 0 0 40px;
+  width: 40px;
+  border: 1px solid #49303b;
+  border-radius: 10px;
+  background: #2a1d25;
+  color: #ff9eaf;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.delete-multi-chat-btn:hover {
+  background: #512633;
+  border-color: #a84e65;
+  color: #ffffff;
+}
+
+@media (max-width: 760px) {
+  .multi-history-actions {
+    width: 100%;
+  }
+
+  .multi-history-actions button {
+    flex: 1;
+  }
+
+  .multi-chat-row .delete-multi-chat-btn {
+    flex: 0 0 42px;
+  }
+}
