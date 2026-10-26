@@ -348,7 +348,101 @@
 .light-theme .multi-composer textarea {
   color: #292638;
 }
+/* ===== ИСТОРИЯ ДИАЛОГОВ МУЛЬТИ-ИИ ===== */
 
+.multi-history {
+padding: 14px 16px;
+border-bottom: 1px solid #292b36;
+background: #171923;
+}
+
+.multi-history-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 10px;
+margin-bottom: 12px;
+}
+
+.multi-history-header strong {
+color: #eeeaf8;
+font-size: 14px;
+}
+
+#newMultiChatBtn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+padding: 9px 12px;
+border: 1px solid #7658bd;
+border-radius: 10px;
+background: #302543;
+color: #e8dcff;
+font: inherit;
+font-size: 12px;
+cursor: pointer;
+}
+
+#newMultiChatBtn:active {
+background: #45315f;
+}
+
+.multi-chat-list {
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+
+.multi-chat-list-item {
+display: block;
+width: 100%;
+min-width: 0;
+padding: 11px 12px;
+border: 1px solid #303241;
+border-radius: 10px;
+background: #1d1f2a;
+color: #dcd8e9;
+font: inherit;
+font-size: 13px;
+text-align: left;
+overflow-wrap: anywhere;
+cursor: pointer;
+}
+
+.multi-chat-list-item:hover,
+.multi-chat-list-item.active {
+border-color: #9b72ff;
+background: #292239;
+color: #cbb5ff;
+}
+
+.multi-chat-list:empty {
+display: none;
+}
+
+.multi-history #multiChatList {
+color: #9698aa;
+font-size: 12px;
+}
+
+@media (max-width: 760px) {
+.multi-history {
+padding: 14px 12px;
+}
+
+.multi-history-header {
+align-items: stretch;
+}
+
+#newMultiChatBtn {
+width: 100%;
+}
+
+.multi-chat-list-item {
+padding: 12px;
+}
+}
 @media (max-width: 760px) {
   .multi-chat-messages {
     min-height: 300px;
