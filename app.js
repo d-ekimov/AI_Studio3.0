@@ -1208,7 +1208,17 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       } finally {
         button.disabled = false;
       }
-    };
+    };    };
+
+    d.showModal();
+
+    setTimeout(() => {
+      if (fields.length) {
+        $("#" + fields[0].id)?.focus();
+      }
+    }, 50);
+  }
+
   $$(".provider-detail").forEach(b=>b.addEventListener("click",()=>openDialog(b.dataset.provider,"Подключение пока не включено. Следующим этапом добавим сервер, безопасное хранение ключей и реальные ответы. API оплачивается отдельно от подписки на чат-сервис.","Понятно",()=>{})));
   $("#futureProvider").addEventListener("click",()=>toast("Новые провайдеры добавим отдельными модулями."));
   $("#themeToggle").addEventListener("click",()=>{document.body.classList.toggle("light-theme");save("aistudio_light",document.body.classList.contains("light-theme"));});
