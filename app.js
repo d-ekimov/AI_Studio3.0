@@ -9,7 +9,6 @@
     SUPABASE_KEY
   );
   const pageNames = {chat:"Чат", compare:"Несколько ИИ", multi:"Мульти-ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
-  const defaultTasks = [
     const read = (key, fallback) => {
     try {
       const v = localStorage.getItem(key);
