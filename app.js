@@ -1208,7 +1208,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       } finally {
         button.disabled = false;
       }
-    };    };
+    };
 
     d.showModal();
 
