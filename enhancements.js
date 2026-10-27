@@ -60,7 +60,35 @@
     if (standalone()) label("✓ Уже установлено", true);
     else label("↓ Установить приложение");
     if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-      addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(err => console.warn("Service worker:", err)), { once: true });
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register(
+        "./service-worker.js",
+        { updateViaCache: "none" }
+      );
+
+      // Проверяем наличие новой версии при открытии сайта.
+      await registration.update();
+
+      // Если найдена новая версия, активируем её.
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+
+        if (!worker) return;
+
+        worker.addEventListener("statechange", () => {
+          if (
+            worker.state === "installed" &&
+            navigator.serviceWorker.controller
+          ) {
+            window.location.reload();
+          }
+        });
+      });
+    } catch (error) {
+      console.warn("Не удалось обновить AI Studio:", error);
+    }
+  }, { once: true });
     }
   });
 })();
