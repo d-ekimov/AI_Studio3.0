@@ -884,41 +884,331 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       input.focus();
     }
   });
-  const renderProjects=()=>{
-    const grid=$("#projectGrid");grid.innerHTML="";
-    projects.forEach((p,i)=>{const card=document.createElement("article");card.className="project-card";card.innerHTML=`<div class="project-icon ${p.color||"purple-bg"}">${p.icon||"✧"}</div><span class="project-state ${p.state==="Идея"?"quiet-state":""}">${p.state||"В работе"}</span><h3></h3><p></p><div class="project-meta"><span>◷ Локально</span><span>${Number(p.tasks)||0} задач</span></div><button class="text-action">Открыть проект <span>→</span></button>`;$("h3",card).textContent=p.name;$("p",card).textContent=p.desc;$(".text-action",card).addEventListener("click",()=>openDialog(p.name,"Проект создан в прототипе. Позже здесь появятся связанные чаты, файлы и задачи.","Понятно",()=>{}));grid.appendChild(card);});
-    const add=document.createElement("button");add.className="add-project-card";add.innerHTML="<span>＋</span><strong>Создать проект</strong><small>Начни с чистого листа</small>";add.addEventListener("click",createProject);grid.appendChild(add);
-  };
-  function createProject(){
-    openDialog("Новый проект","Дай проекту название и коротко опиши цель.","Создать",()=>{
-      const name=$("#fieldName")?.value.trim();const desc=$("#fieldDesc")?.value.trim();
-      if(!name){toast("Укажи название проекта.");return false;}
-      projects.push({name,desc:desc||"Новый проект без описания.",state:"В работе",icon:"✧",color:"purple-bg",tasks:0});save("aistudio_projects",projects);renderProjects();toast("Проект создан.");return true;
-    },[{id:"fieldName",label:"Название проекта",placeholder:"Например, мой первый сайт"},{id:"fieldDesc",label:"Описание",placeholder:"Чего хочешь добиться?"}]);
+    // Загружаем проекты и задачи пользователя из Supabase
+  async function loadProjectsAndTasks() {
+    if (!currentUser) return;
+
+    const { data: projectRows, error: projectError } = await supabase
+      .from("ai_projects")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("created_at", { ascending: false });
+
+    if (projectError) {
+      console.error("Ошибка загрузки проектов:", projectError);
+      toast("Не удалось загрузить проекты.");
+      return;
+    }
+
+    const { data: taskRows, error: taskError } = await supabase
+      .from("ai_tasks")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("created_at", { ascending: false });
+
+    if (taskError) {
+      console.error("Ошибка загрузки задач:", taskError);
+      toast("Не удалось загрузить задачи.");
+      return;
+    }
+
+    projects = (projectRows || []).map(p => ({
+      ...p,
+      desc: p.description || ""
+    }));
+
+    tasks = (taskRows || []).map(t => ({
+      ...t,
+      desc: t.description || ""
+    }));
+
+    renderProjects();
+    renderTasks();
   }
-  $("#addProject").addEventListener("click",createProject);$("#addProjectCard").addEventListener("click",createProject);
-  const renderTasks=()=>{
-    const list=$("#taskList");list.innerHTML="";const filter=$("#taskFilter").value;
-    tasks.filter(t=>filter==="all"||(filter==="done"?t.done:!t.done)).forEach(t=>{
-      const row=document.createElement("div");row.className="task-row"+(t.done?" completed":"");
-      const check=document.createElement("input");check.type="checkbox";check.className="task-check";check.checked=t.done;check.setAttribute("aria-label","Отметить задачу выполненной");check.addEventListener("change",()=>{t.done=check.checked;save("aistudio_tasks",tasks);renderTasks();});
-      const copy=document.createElement("div");copy.className="task-copy";const title=document.createElement("strong");title.textContent=t.title;const desc=document.createElement("p");desc.textContent=t.desc;copy.append(title,desc);
-      const tag=document.createElement("span");tag.className="task-tag"+(t.done?" done-tag":"");tag.textContent=t.done?"Готово":t.tag;
-      row.append(check,copy,tag);list.appendChild(row);
+
+  // Отрисовка проектов
+  const renderProjects = () => {
+    const grid = $("#projectGrid");
+    grid.innerHTML = "";
+
+    projects.forEach(p => {
+      const card = document.createElement("article");
+      card.className = "project-card";
+
+      const taskCount = tasks.filter(t => t.project_id === p.id).length;
+
+      card.innerHTML = `
+        <div class="project-icon ${p.color || "purple-bg"}">${p.icon || "✧"}</div>
+        <span class="project-state ${p.state === "Идея" ? "quiet-state" : ""}">${p.state || "В работе"}</span>
+        <h3></h3>
+        <p></p>
+        <div class="project-meta">
+          <span>◷ Supabase</span>
+          <span>${taskCount} задач</span>
+        </div>
+        <button class="text-action">Открыть проект <span>→</span></button>
+      `;
+
+      $("h3", card).textContent = p.name;
+      $("p", card).textContent = p.desc;
+
+      $(".text-action", card).addEventListener("click", () => {
+        openDialog(
+          p.name,
+          p.desc || "Описание проекта не указано.",
+          "Понятно",
+          () => {}
+        );
+      });
+
+      grid.appendChild(card);
     });
-    const done=tasks.filter(t=>t.done).length;$("#taskTotal").textContent=tasks.length;$("#taskActive").textContent=tasks.length-done;$("#taskDone").textContent=done;const percent=tasks.length?Math.round(done/tasks.length*100):0;$("#taskProgress").textContent=percent+"%";$("#taskProgressBar").style.width=percent+"%";
-    if(!list.children.length){const p=document.createElement("p");p.style.color="var(--muted)";p.textContent="В этой категории пока нет задач.";list.appendChild(p);}
+
+    const add = document.createElement("button");
+    add.className = "add-project-card";
+    add.innerHTML = "<span>＋</span><strong>Создать проект</strong><small>Начни с чистого листа</small>";
+    add.addEventListener("click", createProject);
+    grid.appendChild(add);
   };
-  $("#taskFilter").addEventListener("change",renderTasks);
-  $("#addTask").addEventListener("click",()=>openDialog("Новая задача","Добавь небольшой следующий шаг.","Добавить",()=>{
-    const title=$("#fieldName")?.value.trim();const desc=$("#fieldDesc")?.value.trim();if(!title){toast("Укажи название задачи.");return false;}tasks.push({id:Date.now(),title,desc:desc||"Без описания",done:false,tag:"Новая"});save("aistudio_tasks",tasks);renderTasks();toast("Задача добавлена.");return true;
-  },[{id:"fieldName",label:"Название задачи",placeholder:"Что нужно сделать?"},{id:"fieldDesc",label:"Описание",placeholder:"Необязательно"}]));
+
+  // Создание проекта в Supabase
+  function createProject() {
+    openDialog(
+      "Новый проект",
+      "Дай проекту название и коротко опиши цель.",
+      "Создать",
+      async () => {
+        if (!currentUser) {
+          toast("Войди в аккаунт.");
+          return false;
+        }
+
+        const name = $("#fieldName")?.value.trim();
+        const desc = $("#fieldDesc")?.value.trim();
+
+        if (!name) {
+          toast("Укажи название проекта.");
+          return false;
+        }
+
+        const { data, error } = await supabase
+          .from("ai_projects")
+          .insert({
+            user_id: currentUser.id,
+            name,
+            description: desc || "Новый проект без описания.",
+            state: "В работе",
+            icon: "✧",
+            color: "purple-bg"
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Ошибка создания проекта:", error);
+          toast("Не удалось создать проект.");
+          return false;
+        }
+
+        projects.unshift({
+          ...data,
+          desc: data.description || ""
+        });
+
+        renderProjects();
+        renderTasks();
+        toast("Проект сохранён.");
+        return true;
+      },
+      [
+        {
+          id: "fieldName",
+          label: "Название проекта",
+          placeholder: "Например, мой первый сайт"
+        },
+        {
+          id: "fieldDesc",
+          label: "Описание",
+          placeholder: "Чего хочешь добиться?"
+        }
+      ]
+    );
+  }
+
+  $("#addProject").addEventListener("click", createProject);
+  $("#addProjectCard").addEventListener("click", createProject);
+
+  // Отрисовка задач
+  const renderTasks = () => {
+    const list = $("#taskList");
+    list.innerHTML = "";
+
+    const filter = $("#taskFilter").value;
+
+    tasks
+      .filter(t =>
+        filter === "all" ||
+        (filter === "done" ? t.done : !t.done)
+      )
+      .forEach(t => {
+        const row = document.createElement("div");
+        row.className = "task-row" + (t.done ? " completed" : "");
+
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.className = "task-check";
+        check.checked = t.done;
+        check.setAttribute("aria-label", "Отметить задачу выполненной");
+
+        check.addEventListener("change", async () => {
+          if (!currentUser) return;
+
+          const previousValue = t.done;
+          t.done = check.checked;
+          check.disabled = true;
+
+          const { error } = await supabase
+            .from("ai_tasks")
+            .update({
+              done: t.done,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", t.id)
+            .eq("user_id", currentUser.id);
+
+          check.disabled = false;
+
+          if (error) {
+            console.error("Ошибка обновления задачи:", error);
+            t.done = previousValue;
+            toast("Не удалось обновить задачу.");
+          }
+
+          renderTasks();
+        });
+
+        const copy = document.createElement("div");
+        copy.className = "task-copy";
+
+        const title = document.createElement("strong");
+        title.textContent = t.title;
+
+        const desc = document.createElement("p");
+        desc.textContent = t.desc || "Без описания";
+
+        copy.append(title, desc);
+
+        const tag = document.createElement("span");
+        tag.className = "task-tag" + (t.done ? " done-tag" : "");
+        tag.textContent = t.done ? "Готово" : (t.tag || "Новая");
+
+        row.append(check, copy, tag);
+        list.appendChild(row);
+      });
+
+    const done = tasks.filter(t => t.done).length;
+
+    $("#taskTotal").textContent = tasks.length;
+    $("#taskActive").textContent = tasks.length - done;
+    $("#taskDone").textContent = done;
+
+    const percent = tasks.length
+      ? Math.round(done / tasks.length * 100)
+      : 0;
+
+    $("#taskProgress").textContent = percent + "%";
+    $("#taskProgressBar").style.width = percent + "%";
+
+    if (!list.children.length) {
+      const p = document.createElement("p");
+      p.style.color = "var(--muted)";
+      p.textContent = "В этой категории пока нет задач.";
+      list.appendChild(p);
+    }
+  };
+
+  $("#taskFilter").addEventListener("change", renderTasks);
+
+  // Создание задачи в Supabase
+  $("#addTask").addEventListener("click", () => {
+    openDialog(
+      "Новая задача",
+      "Добавь небольшой следующий шаг.",
+      "Добавить",
+      async () => {
+        if (!currentUser) {
+          toast("Войди в аккаунт.");
+          return false;
+        }
+
+        const title = $("#fieldName")?.value.trim();
+        const desc = $("#fieldDesc")?.value.trim();
+
+        if (!title) {
+          toast("Укажи название задачи.");
+          return false;
+        }
+
+        const { data, error } = await supabase
+          .from("ai_tasks")
+          .insert({
+            user_id: currentUser.id,
+            title,
+            description: desc || "Без описания",
+            done: false,
+            tag: "Новая"
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Ошибка создания задачи:", error);
+          toast("Не удалось сохранить задачу.");
+          return false;
+        }
+
+        tasks.unshift({
+          ...data,
+          desc: data.description || ""
+        });
+
+        renderTasks();
+        renderProjects();
+        toast("Задача сохранена.");
+        return true;
+      },
+      [
+        {
+          id: "fieldName",
+          label: "Название задачи",
+          placeholder: "Что нужно сделать?"
+        },
+        {
+          id: "fieldDesc",
+          label: "Описание",
+          placeholder: "Необязательно"
+        }
+      ]
+    );
+  });
   function openDialog(title,text,confirmLabel,onConfirm,fields=[]){
     const d=$("#appDialog");$("#dialogTitle").textContent=title;$("#dialogText").textContent=text;$("#dialogConfirm").textContent=confirmLabel;const box=$("#dialogFields");box.innerHTML="";
     fields.forEach(f=>{const wrap=document.createElement("div");wrap.className="dialog-field";const label=document.createElement("label");label.textContent=f.label;label.htmlFor=f.id;const input=document.createElement(f.multiline?"textarea":"input");input.id=f.id;input.placeholder=f.placeholder||"";if(f.multiline)input.rows=3;wrap.append(label,input);box.appendChild(wrap);});
-    $("#dialogConfirm").onclick=(e)=>{e.preventDefault();const result=onConfirm?.();if(result!==false)d.close();};
-    d.showModal();setTimeout(()=>fields.length&&$("#"+fields[0].id)?.focus(),50);
-  }
+        $("#dialogConfirm").onclick = async (e) => {
+      e.preventDefault();
+      const button = $("#dialogConfirm");
+      button.disabled = true;
+
+      try {
+        const result = await onConfirm?.();
+        if (result !== false) d.close();
+      } catch (error) {
+        console.error("Ошибка выполнения действия:", error);
+        toast("Произошла ошибка. Попробуй ещё раз.");
+      } finally {
+        button.disabled = false;
+      }
+    };
   $$(".provider-detail").forEach(b=>b.addEventListener("click",()=>openDialog(b.dataset.provider,"Подключение пока не включено. Следующим этапом добавим сервер, безопасное хранение ключей и реальные ответы. API оплачивается отдельно от подписки на чат-сервис.","Понятно",()=>{})));
   $("#futureProvider").addEventListener("click",()=>toast("Новые провайдеры добавим отдельными модулями."));
   $("#themeToggle").addEventListener("click",()=>{document.body.classList.toggle("light-theme");save("aistudio_light",document.body.classList.contains("light-theme"));});
@@ -955,6 +1245,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
     currentUser = session.user;
     renderSidebarProfile(currentUser);
+    await loadProjectsAndTasks();
     
     await loadLatestMultiChat();
     
