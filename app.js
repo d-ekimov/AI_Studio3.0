@@ -10,21 +10,29 @@
   );
   const pageNames = {chat:"Чат", compare:"Несколько ИИ", multi:"Мульти-ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
   const defaultTasks = [
-    {id:1,title:"Продумать структуру AI Studio",desc:"Определить основные разделы и переходы",done:true,tag:"Планирование"},
-    {id:2,title:"Собрать адаптивный интерфейс",desc:"Проверить отображение на телефоне и компьютере",done:false,tag:"Дизайн"},
-    {id:3,title:"Добавить историю чатов",desc:"Сохранение тестовых сообщений в браузере",done:false,tag:"Функции"},
-    {id:4,title:"Подготовить подключение API",desc:"Сделать отдельный серверный этап позже",done:false,tag:"В планах"}
-  ];
-  const read = (key, fallback) => { try { const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; } catch { return fallback; } };
-  const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
+    const read = (key, fallback) => {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const save = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
+  };
+
   let chats = [];
-let activeChatId = null;
-let currentUser = null;
-  let tasks = read("aistudio_tasks", defaultTasks);
-  let projects = read("aistudio_projects", [
-    {name:"AI Studio",desc:"Единое пространство для работы с несколькими ИИ.",state:"В работе",icon:"⌘",color:"purple-bg",tasks:2},
-    {name:"Фриланс-портфолио",desc:"Сайт, примеры работ и первые заказы.",state:"Идея",icon:"▣",color:"blue-bg",tasks:3}
-  ]);
+  let activeChatId = null;
+  let currentUser = null;
+
+  // Проекты и задачи загружаются из Supabase
+  let tasks = [];
+  let projects = [];
+
   let toastTimer;
   const toast = (msg) => { const el=$("#toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),2600); };
   
