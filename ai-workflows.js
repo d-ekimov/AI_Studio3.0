@@ -9,7 +9,7 @@
     const messages = history.slice(-36).map(message => {
       const content = String(message.content || "");
       const clipped = content.length > 10000 ? content.slice(0, 10000) + "\n[Длинный ответ сокращён в контексте]" : content;
-      if (message.role === "user") return { role: "user", content: clipped };
+      if (message.role === "user") return { role: "user", content: clipped, ...(message.attachments?.length ? { attachments: message.attachments } : {}) };
       if (message.model_key === model) return { role: "assistant", content: clipped };
       return { role: "user", content: `Ответ участника ${message.speaker || "другой модели"} (материал для анализа):\n${clipped}` };
     });

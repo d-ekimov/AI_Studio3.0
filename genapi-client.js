@@ -9,7 +9,7 @@
       if (!["user", "assistant"].includes(message.role) || !content.trim()) continue;
       if (content.length > 12000) throw new Error("Одно сообщение слишком длинное: максимум 12000 символов.");
       if (length + content.length > 60000) break;
-      result.unshift({ role: message.role, content }); length += content.length;
+      result.unshift({ role: message.role, content, ...(message.attachments?.length ? { attachments: message.attachments } : {}) }); length += content.length;
     }
     return result;
   }

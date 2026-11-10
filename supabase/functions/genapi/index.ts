@@ -1,5 +1,6 @@
 // No provider SDK or privileged database client is needed by this gateway.
 // Kept in standard JavaScript syntax so its security paths can also run in Node tests.
+import { hydrateAttachments, CAPABILITIES } from "./attachments.mjs";
 class GatewayError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -30,7 +31,10 @@ function validateMessages(messages) {
   }
   const clean = messages.map(m => {
     if (!m || !["user", "assistant"].includes(m.role)) throw new GatewayError(400, "Недопустимая роль сообщения.");
-    return { role: m.role, content: text(m.content, "сообщение", 12000) };
+    if (m.attachments !== undefined && (!Array.isArray(m.attachments) || m.attachments.length > 4 || m.role !== "user" && m.attachments.length)) {
+      throw new GatewayError(400, "Недопустимые вложения сообщения.");
+    }
+    return { role: m.role, content: text(m.content, "сообщение", 12000), ...(m.attachments?.length ? { attachments: m.attachments } : {}) };
   });
   if (clean.reduce((sum, m) => sum + m.content.length, 0) > 60000 || clean.at(-1).role !== "user") {
     throw new GatewayError(400, "Сократи контекст; последнее сообщение должно быть от пользователя.");
@@ -67,7 +71,7 @@ function outputUrls(data) {
   }).slice(0, 8);
 }
 
-export function createHandler({ env = name => Deno.env.get(name), fetcher = fetch, now = Date.now } = {}) {
+export function createHandler({ env = name => Deno.env.get(name), fetcher = fetch, now = Date.now, attachmentTools = {} } = {}) {
   // Best-effort local throttling, NOT a durable quota or billing system.
   const windows = new Map();
   const inFlight = new Map();
@@ -102,7 +106,7 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
         // Return only known parameter names, never upstream messages or submitted values.
         let validation;
         try { validation = (await response.json()).errors_validation; } catch {}
-        const known = ["callback_url", "prompt", "model", "width", "height", "enable_safey_checker", "videoUri", "promptText", "ratio", "text", "voice", "language_code", "turbo", "output_format"];
+        const known = ["callback_url", "prompt", "model", "width", "height", "enable_safey_checker", "videoUri", "promptText", "ratio", "text", "voice", "language_code", "turbo", "output_format", "messages", "attachments", "file"];
         const fields = validation && typeof validation === "object" ? Object.keys(validation).filter(name => known.includes(name)) : [];
         throw new GatewayError(422, fields.length ? `GenAPI отклонил параметры: ${fields.join(", ")}. Проверь значения этих полей.` : "GenAPI отклонил параметры (HTTP 422). Проверь описание, исходный файл и настройки модели.");
       }
@@ -155,7 +159,7 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new GatewayError(400, "Некорректный запрос.");
       const apiKey = env("GENAPI_API_KEY");
       if (!apiKey) throw new GatewayError(503, "В Secrets Supabase отсутствует GENAPI_API_KEY.");
-      if (body.action === "health") return json(200, { ready: true, models: MODELS });
+      if (body.action === "health") return json(200, { ready: true, models: MODELS, capabilities: CAPABILITIES });
       if (body.action === "status") {
         const job = await readTicket(apiKey, user.id, body.ticket);
         const result = await provider(`request/get/${job.requestId}`, apiKey);
@@ -181,6 +185,13 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
       if (window.count >= 8 || (inFlight.get(user.id) || 0) >= 3) throw new GatewayError(429, "Слишком много запросов. Дождись завершения или попробуй через минуту.");
       window.count++; windows.set(user.id, window);
       inFlight.set(user.id, (inFlight.get(user.id) || 0) + 1); runningUser = user.id;
+      if (body.action === "chat" && payload.messages.some(message => message.attachments?.length)) {
+        try {
+          payload.messages = await hydrateAttachments(payload.messages, body.model, { userId: user.id, supabaseUrl, supabaseKey, authorization, fetcher, tools: attachmentTools });
+        } catch (error) {
+          throw new GatewayError(400, `Не удалось обработать вложения: ${String(error.message || "проверь формат и размер файлов").slice(0, 350)}`);
+        }
+      }
       const result = await provider(body.action === "chat" ? "chat" : `networks/${slug}`, apiKey, payload);
       if (body.action === "chat") {
         const content = result.choices?.[0]?.message?.content;

@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-const source = readFileSync(new URL("../supabase/functions/genapi/index.ts", import.meta.url), "utf8");
-const { createHandler } = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
+const { createHandler } = await import("../supabase/functions/genapi/index.ts");
 const origin = "https://studio.example";
 const token = aal => `header.${Buffer.from(JSON.stringify({ aal })).toString("base64url")}.signature`;
 const response = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });

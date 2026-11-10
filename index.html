@@ -49,14 +49,15 @@
             <button class="suggestion" data-prompt="Помоги написать и улучшить текст"><span class="suggestion-icon orange">✎</span><span><strong>Написать текст</strong><small>Черновик и редактура</small></span><b>↗</b></button>
             <button class="suggestion" data-prompt="Разбей мою цель на понятные задачи"><span class="suggestion-icon green">☷</span><span><strong>Разобрать задачу</strong><small>Понятные следующие шаги</small></span><b>↗</b></button>
           </div>
-          <form class="composer" id="chatForm"><button type="button" class="attach-btn" id="attachButton" title="Файлы будут доступны позже">＋</button><textarea id="messageInput" rows="1" placeholder="Напиши сообщение… (Enter — отправить)" aria-label="Сообщение"></textarea><div class="composer-tools"><span>Запрос расходует средства GenAPI</span><button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button></div></form>
+          <div id="chatAttachments" class="attachment-preview"></div><div id="chatAttachmentStatus" class="attachment-status" role="status" aria-live="polite"></div>
+          <form class="composer" id="chatForm"><input id="chatFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.docx,.txt,.csv,.xlsx,.pptx" multiple hidden><button type="button" class="attach-btn" id="attachButton" title="Прикрепить файлы" aria-label="Прикрепить файлы">＋</button><textarea id="messageInput" rows="1" placeholder="Напиши сообщение… (Enter — отправить)" aria-label="Сообщение"></textarea><div class="composer-tools"><span>Запрос расходует средства GenAPI</span><button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button></div></form>
           <div class="privacy-note"><span>♧</span> Твои чаты сохраняются в аккаунте и доступны после входа.</div>
         </div>
       </section>
       <section class="page" id="page-compare">
         <div class="page-header"><div class="eyebrow">СРАВНЕНИЕ МОДЕЛЕЙ</div><h1>Несколько ИИ, <span>одна задача.</span></h1><p>Отправь один запрос нескольким моделям и сравни подходы. Каждая выбранная модель выполняет отдельный запрос GenAPI.</p></div>
-        <div class="compare-input"><textarea id="comparePrompt" maxlength="6000" aria-label="Запрос для сравнения моделей" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
-        <p id="compareStatus" class="workflow-status" role="status" aria-live="polite">Два независимых ответа на один запрос. Результаты сравнения доступны до перезагрузки страницы.</p>
+        <div class="attachment-toolbar"><button id="compareAttachButton" class="outline-btn" type="button">＋ Прикрепить файлы</button><input id="compareFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.docx,.txt,.csv,.xlsx,.pptx" multiple hidden><span>До 4 файлов · 10 МБ на файл · 20 МБ всего</span></div><div id="compareAttachments" class="attachment-preview"></div><div id="compareAttachmentStatus" class="attachment-status" role="status" aria-live="polite"></div><div class="compare-input"><textarea id="comparePrompt" maxlength="6000" aria-label="Запрос для сравнения моделей" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
+        <p id="compareStatus" class="workflow-status" role="status" aria-live="polite">Два независимых ответа на один запрос. Сравнения с вложениями сохраняются в общей истории Мульти-ИИ.</p>
         <div class="compare-grid" id="compareGrid">
           <article class="compare-card">
             <div class="compare-card-head">
@@ -164,7 +165,7 @@
       </div>
     </div>
 
-    <form class="multi-composer" id="multiChatForm">
+    <div id="multiAttachments" class="attachment-preview"></div><div id="multiAttachmentStatus" class="attachment-status" role="status" aria-live="polite"></div><form class="multi-composer" id="multiChatForm"><input id="multiFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.docx,.txt,.csv,.xlsx,.pptx" multiple hidden>
       <textarea
         id="multiMessageInput"
         rows="2"
@@ -172,7 +173,7 @@
         placeholder="Напиши сообщение для общего чата…"
         aria-label="Сообщение для общего чата"
       ></textarea>
-      <div class="multi-composer-bottom">
+      <div class="multi-composer-bottom"><button id="multiAttachButton" class="outline-btn" type="button" aria-label="Прикрепить файлы к Мульти-ИИ">＋ Файлы</button>
         <span>Каждый ответ модели — отдельный запрос GenAPI</span>
         <button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button>
       </div>
@@ -260,6 +261,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="genapi-client.js"></script>
 <script src="ai-workflows.js"></script>
+<script src="chat-attachments.js"></script>
 <script src="app.js"></script>
 <script src="genapi-media.js"></script>
 <script src="enhancements.js"></script>
