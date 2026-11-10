@@ -28,7 +28,7 @@ test("research composer persists the job link before advancing and reuses its sa
  assert.equal(await f.composer.prepare(options),"research-id");assert.equal(await f.composer.prepare(options),"research-id");
  assert.equal(f.calls.filter(call=>call.action==="create").length,1);assert.equal(f.calls.filter(call=>call.action==="step").length,1);assert.equal(linked,2);
 });
-test("search controls stay hidden until live preview is explicitly enabled",()=>{assert.equal(fixture("").form.previous.hidden,true);assert.equal(fixture().form.previous.hidden,false);});
+test("released search controls are available on the ordinary application URL",()=>{assert.equal(fixture("").form.previous.hidden,false);assert.equal(fixture().form.previous.hidden,false);});
 
 test("resume reuses the receipt while an explicitly paid retry does not create another search",async()=>{
  for(const index of[0,1]){

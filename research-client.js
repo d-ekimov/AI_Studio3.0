@@ -1,6 +1,6 @@
 /* Research UI and source rendering. Only session JWTs reach Supabase; provider keys stay server-side. */
 (() => {
- const enabled=new URLSearchParams(window.location.search||"").get("research_preview")==="1";
+ const enabled=true;
  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const safeUrl=value=>{try{const u=new URL(value);return u.protocol==="https:"&&!u.username&&!u.password?u.href:null;}catch{return null;}};
  function create(supabase){

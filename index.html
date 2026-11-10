@@ -57,7 +57,7 @@
       <section class="page" id="page-compare">
         <div class="page-header"><div class="eyebrow">СРАВНЕНИЕ МОДЕЛЕЙ</div><h1>Несколько ИИ, <span>одна задача.</span></h1><p>Отправь один запрос нескольким моделям и сравни подходы. Каждая выбранная модель выполняет отдельный запрос GenAPI.</p></div>
         <div class="attachment-toolbar"><button id="compareAttachButton" class="outline-btn" type="button">＋ Прикрепить файлы</button><input id="compareFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.docx,.txt,.csv,.xlsx,.pptx" multiple hidden><span>До 4 файлов · 10 МБ на файл · 20 МБ всего</span></div><div id="compareAttachments" class="attachment-preview"></div><div id="compareAttachmentStatus" class="attachment-status" role="status" aria-live="polite"></div><div class="compare-input"><textarea id="comparePrompt" maxlength="6000" aria-label="Запрос для сравнения моделей" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
-        <p id="compareStatus" class="workflow-status" role="status" aria-live="polite">Два независимых ответа на один запрос. Сравнения с вложениями сохраняются в общей истории Мульти-ИИ.</p>
+        <p id="compareStatus" class="workflow-status" role="status" aria-live="polite">Два независимых ответа на один запрос. Сравнения с файлами или поиском сохраняются в общей истории Мульти-ИИ.</p>
         <div class="compare-grid" id="compareGrid">
           <article class="compare-card">
             <div class="compare-card-head">
@@ -262,8 +262,8 @@
 <script src="genapi-client.js"></script>
 <script src="ai-workflows.js"></script>
 <script src="chat-attachments.js"></script>
-<script src="research-client.js?v=research-preview-2"></script>
-<script src="app.js?v=research-preview-2"></script>
+<script src="research-client.js?v=research-v1"></script>
+<script src="app.js?v=research-v1"></script>
 <script src="genapi-media.js"></script>
 <script src="enhancements.js"></script>
 </body>

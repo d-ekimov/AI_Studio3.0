@@ -404,7 +404,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
       compareFiles.lock(false);
       compareResearch.lock(false);
       const success = [1, 2].filter(slot => round.results[slot]?.status === "success").length;
-      $("#compareStatus").textContent = "Готово ответов: " + success + " из 2. " + (round.chatId ? "Диалог с файлами доступен в истории Мульти-ИИ." : "Результаты доступны до перезагрузки страницы.");
+      $("#compareStatus").textContent = "Готово ответов: " + success + " из 2. " + (round.chatId ? "Диалог доступен в истории Мульти-ИИ." : "Результаты доступны до перезагрузки страницы.");
       for (const slot of [1, 2]) {
         $("#compareCopy" + slot).disabled = round.results[slot]?.status !== "success";
         $("#compareRetry" + slot).hidden = round.results[slot]?.status !== "error";
@@ -444,13 +444,13 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
           if (requestedCompareFiles&&!compareFiles.count()) throw new Error("Не удалось подготовить вложения. Выбери файлы снова.");
           if (!comparisonDraftId) {
             const { data, error } = await supabase.from("multi_ai_chats").insert({ user_id: currentUser.id, title: "Сравнение: " + prompt.slice(0, 32), selected_models: models, sequential_mode: false }).select("id").single();
-            if (error) throw new Error("Не удалось создать диалог для файлов.");
+            if (error) throw new Error("Не удалось создать диалог для сравнения.");
             comparisonDraftId = data.id;
           }
           comparison.chatId = comparisonDraftId;
           comparison.attachments = await compareFiles.upload(currentUser.id, "multi", comparisonDraftId);
           const { error: saveError } = await supabase.from("multi_ai_messages").insert({ id:comparison.messageId,chat_id: comparisonDraftId, role: "user", speaker: "Ты", content: prompt, attachments: comparison.attachments });
-          if (saveError) throw new Error("Не удалось сохранить файлы в истории. Генерации не запускались.");
+          if (saveError) throw new Error("Не удалось сохранить сообщение в истории. Генерации не запускались.");
           compareFiles.clear();
           comparison.researchId=await compareResearch.prepare({userId:currentUser.id,chatId:comparison.chatId,messageId:comparison.messageId,prompt,onCreated:async id=>{const {error}=await supabase.from("multi_ai_messages").update({research_job_id:id}).eq("id",comparison.messageId).eq("chat_id",comparison.chatId);if(error)throw new Error("Не удалось сохранить связь исследования.");}});
           comparisonDraftId = null;
