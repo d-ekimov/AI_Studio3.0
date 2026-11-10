@@ -208,8 +208,8 @@ content.textContent=m.content ?? m.text ?? "";
       row.append(av,content);box.appendChild(row);
     });
     box.scrollTop=box.scrollHeight;
-    const pending = c?.messages.findLast(m=>m.role==="user"&&m.research_job_id);
-    if(pending&&!c.messages.some(m=>m.role==="assistant"&&m.research_job_id===pending.research_job_id))chatResearch.offerResume(pending.research_job_id,()=>resumeChatResearch(c,pending));
+    const pending = c?.messages.findLast(m=>m.role==="user");
+    if(pending?.research_job_id&&!c.messages.some(m=>m.role==="assistant"&&m.research_job_id===pending.research_job_id))chatResearch.offerResume(pending.research_job_id,()=>resumeChatResearch(c,pending));
   };
   const persistChats=()=>{renderHistory();};
 const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;}chatResearch.clear();activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
@@ -676,6 +676,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     if (!currentUser) return;
 
     multiOpening = true;
+    multiResearch.clear();
     try {
     const { data: chat, error: chatError } = await supabase
       .from("multi_ai_chats")
@@ -741,8 +742,8 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     }
 
     $("#multiRunStatus").textContent = visibleMessages.some(message => message.saved === false) ? "Есть ответы, не сохранённые на сервере. Скопируй их перед закрытием страницы." : "История загружена. Можно продолжить обсуждение.";
-    const pending=visibleMessages.findLast(message=>message.role==="user"&&message.research_job_id);
-    if(pending&&selectedModels.some(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model))){
+    const pending=visibleMessages.findLast(message=>message.role==="user");
+    if(pending?.research_job_id&&selectedModels.some(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model))){
       multiResearch.offerResume(pending.research_job_id,async()=>{
         if(multiSending)return;multiSending=true;multiResearch.lock(true);multiFiles.lock(true);
         const button=$("#multiChatForm button[type='submit']"),input=$("#multiMessageInput");button.disabled=true;input.disabled=true;
@@ -830,6 +831,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   // Создаём новый пустой диалог
   $("#newMultiChatBtn").addEventListener("click", () => {
     if (multiSending || multiOpening) { toast("Дождись завершения текущего действия."); return; }
+    multiResearch.clear();
     currentMultiChatId = null;
     $("#multiRunStatus").textContent = "Новый диалог. Выбери участников и отправь задачу.";
 
