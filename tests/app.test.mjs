@@ -5,7 +5,7 @@ import vm from "node:vm";
 
 const flush = async () => { for (let i=0;i<8;i++) await new Promise(resolve => setImmediate(resolve)); };
 
-function appFixture({ saveFailure = false, multi = false, generate, multiSaveFailure = false, uploadFailure = false } = {}) {
+function appFixture({ saveFailure = false, multi = false, generate, multiSaveFailure = false, uploadFailure = false, research = false } = {}) {
   class Element {
     constructor() { this.listeners = {}; this.style = {}; this.dataset = {}; this.children = []; this.value = ""; this.checked = false; this.disabled = false; this.textContent = ""; this.classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } }; }
     addEventListener(name, fn) { this.listeners[name] = fn; }
@@ -35,7 +35,7 @@ function appFixture({ saveFailure = false, multi = false, generate, multiSaveFai
   nodes.get("#taskFilter").value = "all";
   nodes.get("#multiAutoMode").checked = true;
   const modelInputs = [{ value: "chatgpt", checked: true }, { value: "gemini", checked: true }];
-  const rows = [], apiCalls = [];
+  const rows = [], apiCalls = [], researchRequests = [];
   const user = { id: "user-a", email: "a@example.test", user_metadata: {} };
   const query = table => {
     let op = "select", payload = null;
@@ -66,11 +66,12 @@ function appFixture({ saveFailure = false, multi = false, generate, multiSaveFai
     createElement: tag => { const el = new Element(); el.tagName = tag; return el; }, addEventListener() {}, body: new Element(),
   };
   const names = { chatgpt: "GPT-6 Sol", gemini: "Gemini 3.7 Flash", deepseek: "DeepSeek V4.1 Flash" };
-  const sandbox = { document, console, Blob, File, URL, crypto, confirm: () => true, setTimeout: () => 1, clearTimeout() {}, localStorage: { getItem() { return null; }, setItem() {} }, window: { innerWidth: 1200, scrollTo() {}, location: {}, supabase: { createClient: () => supabase }, AIStudioGenAPI: { names, context: value => value, create: () => ({ chat: async (model, messages) => { apiCalls.push({ model, messages: structuredClone(messages) }); return generate ? generate(model, messages) : multi ? { content: "Ответ " + model } : deferred; } }) } } };
+  const sandbox = { document, console, Blob, File, URL, crypto, confirm: () => true, setTimeout: () => 1, clearTimeout() {}, localStorage: { getItem() { return null; }, setItem() {} }, window: { innerWidth: 1200, scrollTo() {}, location: {}, supabase: { createClient: () => supabase }, AIStudioGenAPI: { names, context: value => value, create: () => ({ chat: async (model, messages, options = {}) => { apiCalls.push({ model, messages: structuredClone(messages), options: structuredClone(options) }); return generate ? generate(model, messages) : multi ? { content: "Ответ " + model } : deferred; } }) } } };
+  if (research) sandbox.window.AIStudioResearch={create:()=>({renderAnswer(){},mount:()=>({mode:()=>"web",lock(){},clear(){},offerResume(){},resume:async id=>id,prepare:async options=>{researchRequests.push(options);await options.onCreated("shared-research-job");return "shared-research-job";}})})};
   vm.runInNewContext(readFileSync(new URL("../ai-workflows.js", import.meta.url), "utf8"), sandbox);
   vm.runInNewContext(readFileSync(new URL("../chat-attachments.js", import.meta.url), "utf8"), sandbox);
   vm.runInNewContext(readFileSync(new URL("../app.js", import.meta.url), "utf8"), sandbox, { filename: "app.js" });
-  return { nodes, rows, apiCalls, resolveReply, sandbox, uploads };
+  return { nodes, rows, apiCalls, resolveReply, sandbox, uploads, researchRequests };
 }
 
 test("ordinary chat locks duplicate submission and navigation during a paid call", async () => {
@@ -209,4 +210,25 @@ test("unsupported files are rejected and a selected file can be removed before u
   await pick(f,"chat",[new File(["facts"],"note.txt",{type:"text/plain"})]);
   await f.nodes.get("#chatAttachments").children[0].querySelector("button").listeners.click();
   assert.equal(f.nodes.get("#chatAttachments").children.length,0);assert.equal(f.uploads.length,0);
+});
+
+test("ordinary web search links one saved user message to the shared research job",async()=>{
+ const f=appFixture({research:true,generate:async()=>({content:"Verified answer",research_job_id:"shared-research-job",citations:[{label:"S1",url:"https://source.example/"}]})});await flush();
+ f.nodes.get("#messageInput").value="Current information";f.nodes.get("#chatForm").listeners.submit({preventDefault(){}});await flush();
+ assert.equal(f.researchRequests.length,1);assert.equal(f.apiCalls[0].options.researchId,"shared-research-job");
+ assert.equal(f.apiCalls[0].options.answerRequestId,f.rows.find(r=>r.table==="ai_messages"&&r.value.role==="user").value.id);
+ assert.equal(f.rows.find(r=>r.table==="ai_messages"&&r.value.role==="assistant").value.citations.length,1);
+});
+
+test("comparison searches once and shares the job across both independent models",async()=>{
+ const f=appFixture({research:true,generate:async()=>({content:"Verified answer",citations:[]})});await flush();f.nodes.get("#comparePrompt").value="Compare sources";await f.nodes.get("#compareRun").listeners.click();
+ assert.equal(f.researchRequests.length,1);assert.equal(f.apiCalls.length,2);assert.ok(f.apiCalls.every(call=>call.options.researchId==="shared-research-job"));
+ assert.equal(new Set(f.apiCalls.map(call=>call.options.answerRequestId)).size,1);
+});
+
+test("multi-AI shares research and persists source metadata while preserving sequential context",async()=>{
+ const f=appFixture({multi:true,research:true,generate:async model=>({content:"Verified "+model,research_job_id:"shared-research-job",citations:[{label:"S1",url:"https://source.example/"}]})});await flush();f.nodes.get("#multiMessageInput").value="Discuss current sources";await f.nodes.get("#multiChatForm").listeners.submit({preventDefault(){}});
+ assert.equal(f.researchRequests.length,1);assert.equal(f.apiCalls.length,2);assert.ok(f.apiCalls.every(call=>call.options.researchId==="shared-research-job"));
+ assert.ok(f.apiCalls[1].messages.some(message=>message.content.includes("Verified chatgpt")));
+ assert.equal(f.rows.filter(row=>row.table==="multi_ai_messages"&&row.value.role==="assistant"&&row.value.research_job_id==="shared-research-job").length,2);
 });

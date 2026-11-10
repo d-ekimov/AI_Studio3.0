@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "build:edge": "esbuild supabase/functions/genapi/index.ts --bundle --format=esm --platform=neutral --external:npm:* --minify --charset=utf8 --supported:template-literal=false --outfile=build/genapi/index.ts"
+    "build:edge": "esbuild supabase/functions/genapi/index.ts --bundle --format=esm --platform=neutral --external:npm:* --minify --charset=utf8 --supported:template-literal=false --outfile=build/genapi/index.ts",
+    "build:research": "esbuild supabase/functions/research/index.ts --bundle --format=esm --platform=neutral --minify --charset=utf8 --supported:template-literal=false --outfile=build/research/index.ts"
   },
   "devDependencies": {
     "esbuild": "0.25.12",

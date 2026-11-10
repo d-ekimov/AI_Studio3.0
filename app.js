@@ -17,6 +17,11 @@
   const chatFiles = mountFiles("chat", "#attachButton");
   const compareFiles = mountFiles("compare", "#compareAttachButton");
   const multiFiles = mountFiles("multi", "#multiAttachButton");
+  const researchUI = window.AIStudioResearch?.create(supabase);
+  const noResearch = {mode:()=>"off",lock(){},clear(){},prepare:async()=>null,offerResume(){},resume:async id=>id};
+  const chatResearch = researchUI?.mount($("#chatForm"),"chat","chat") || noResearch;
+  const compareResearch = researchUI?.mount($("#comparePrompt").closest(".compare-input"),"compare","multi") || noResearch;
+  const multiResearch = researchUI?.mount($("#multiChatForm"),"multi","multi") || noResearch;
   let chatSending = false;
   const pageNames = {chat:"Чат", compare:"Несколько ИИ", multi:"Мульти-ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
     const read = (key, fallback) => {
@@ -126,6 +131,7 @@ function renderSidebarProfile(user) {
 
       openButton.addEventListener("click", () => {
         if (chatSending) { toast("Дождись ответа."); return; }
+        chatResearch.clear();
         activeChatId = c.id;
         renderChat();
         renderHistory();
@@ -196,14 +202,17 @@ function renderSidebarProfile(user) {
       const content=document.createElement("div");
 content.className="message-content";
 content.textContent=m.content ?? m.text ?? "";
+      researchUI?.renderAnswer(m,content);
       if(m.role!=="user"){const small=document.createElement("small");small.textContent=m.model||modelName();content.appendChild(small);}
       attachmentsUI.renderSaved(m.attachments, content);
       row.append(av,content);box.appendChild(row);
     });
     box.scrollTop=box.scrollHeight;
+    const pending = c?.messages.findLast(m=>m.role==="user");
+    if(pending?.research_job_id&&!c.messages.some(m=>m.role==="assistant"&&m.research_job_id===pending.research_job_id))chatResearch.offerResume(pending.research_job_id,()=>resumeChatResearch(c,pending));
   };
   const persistChats=()=>{renderHistory();};
-const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;}activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
+const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;}chatResearch.clear();activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
   $("#newChat").addEventListener("click",newChat);
   $("#modelSelect").addEventListener("change", () => {
   const val = $("#modelSelect").value;
@@ -231,18 +240,35 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
 
   toast("Выбрана модель: " + modelName());
 });
+  async function finishChatAnswer(c,selected,researchId,answerRequestId){
+    const reply=await genapi.chat(selected,c.messages,{researchId,answerRequestId});
+    const saved={id:crypto.randomUUID(),role:"assistant",content:reply.content,...(researchId?{research_job_id:researchId,citations:reply.citations||[]}:{} )};
+    c.messages.push({...saved,model:modelLabels[selected]});if(activeChatId===c.id)renderChat();
+    const {error:messageError}=await supabase.from("ai_messages").insert({chat_id:c.id,...saved});
+    if(messageError)throw new Error("Ответ получен, но история не сохранена. Скопируй ответ; повторная отправка создаст новый платный запрос.");
+    c.model=selected;const {error}=await supabase.from("ai_chats").update({updated_at:new Date().toISOString(),model:selected}).eq("id",c.id).eq("user_id",currentUser.id);
+    if(error)toast("Сообщения сохранены, но дата чата не обновлена.");persistChats();
+  }
+  async function resumeChatResearch(c,message){
+    if(chatSending)return;chatSending=true;chatResearch.lock(true);chatFiles.lock(true);
+    const button=$("#chatForm button[type='submit']"),input=$("#messageInput");button.disabled=true;input.disabled=true;
+    try{await chatResearch.resume(message.research_job_id);await finishChatAnswer(c,c.model||$("#modelSelect").value,message.research_job_id,message.id);}
+    catch(error){toast(error.message);}finally{chatSending=false;chatResearch.lock(false);chatFiles.lock(false);button.disabled=false;input.disabled=false;renderChat();}
+  }
   const sendMessage = async (text) => {
     text = (text || "").trim();
     const requestedFiles = chatFiles.count() > 0;
     if ((!text && !chatFiles.count()) || chatSending) return;
     if (!text) text = "Проанализируй прикреплённые файлы.";
     if (text.length > 12000) { toast("Сообщение слишком длинное: максимум 12000 символов."); return; }
+    if(chatResearch.mode()!=="off"&&text.length>500){toast("Для интернет-поиска сократи запрос до 500 символов.");return;}
     if (!currentUser) { toast("Войди в аккаунт."); window.location.href = "auth.html"; return; }
     const selected = $("#modelSelect").value;
     const button = $("#chatForm button[type='submit']");
     const input = $("#messageInput");
     chatSending = true; button.disabled = true; input.disabled = true;
     chatFiles.lock(true);
+    chatResearch.lock(true);
     try {
       await chatFiles.ready();
       if (requestedFiles && !chatFiles.count()) throw new Error("Не удалось подготовить вложения. Выбери файлы снова.");
@@ -256,27 +282,21 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
         c = { ...data, messages: [] }; chats.unshift(c); activeChatId = c.id; renderHistory();
       }
       const files = await chatFiles.upload(currentUser.id, "chat", c.id);
-      const userMessage = { role: "user", content: text, ...(files.length ? { attachments: files } : {}) };
+      const userMessage = { id:crypto.randomUUID(),role: "user", content: text, ...(files.length ? { attachments: files } : {}) };
       context[context.length - 1] = userMessage;
       const { error: userMessageError } = await supabase.from("ai_messages").insert({ chat_id: c.id, ...userMessage });
       if (userMessageError) throw new Error("Не удалось сохранить сообщение с вложениями. Генерация не запускалась.");
       c.messages.push(userMessage); chatFiles.clear(); renderChat();
+      if(chatResearch.mode()!=="off"){
+        c.model=selected;const {error}=await supabase.from("ai_chats").update({model:selected}).eq("id",c.id).eq("user_id",currentUser.id);
+        if(error)throw new Error("Не удалось сохранить модель для восстановления исследования.");
+      }
       input.value = "";
-      const reply = await genapi.chat(selected, context);
-      // Keep the paid answer visible even if saving the history fails.
-      c.messages.push({ role: "assistant", content: reply.content, model: modelLabels[selected] });
-      if (activeChatId === c.id) renderChat();
+      const researchId=await chatResearch.prepare({userId:currentUser.id,chatId:c.id,messageId:userMessage.id,prompt:text,onCreated:async id=>{const {error}=await supabase.from("ai_messages").update({research_job_id:id}).eq("id",userMessage.id).eq("chat_id",c.id);if(error)throw new Error("Не удалось связать исследование с сообщением.");userMessage.research_job_id=id;}});
+      await finishChatAnswer(c,selected,researchId,userMessage.id);
       input.value = ""; input.style.height = "auto";
-      const { error: messageError } = await supabase.from("ai_messages").insert({ chat_id: c.id, role: "assistant", content: reply.content });
-      if (messageError) throw new Error("Ответ получен, но история не сохранена. Скопируй ответ; повторная отправка создаст новый платный запрос.");
-      c.model = selected;
-      const { error } = await supabase.from("ai_chats")
-        .update({ updated_at: new Date().toISOString(), model: selected })
-        .eq("id", c.id).eq("user_id", currentUser.id);
-      if (error) toast("Сообщения сохранены, но дата чата не обновлена.");
-      persistChats();
     } catch (error) { toast(error.message || "Не удалось получить ответ GenAPI."); }
-    finally { chatSending = false; chatFiles.lock(false); button.disabled = false; input.disabled = false; input.focus(); }
+    finally { chatSending = false; chatFiles.lock(false); chatResearch.lock(false); button.disabled = false; input.disabled = false; input.focus();renderChat(); }
   };
   $("#chatForm").addEventListener("submit",e=>{e.preventDefault();sendMessage($("#messageInput").value);});
   $("#messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage(e.target.value);}});
@@ -335,6 +355,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     img.alt = modelLabels[model]; icon.replaceChildren(img);
   }
   function resetComparison() {
+    compareResearch.clear();
     comparison = null;
     for (const slot of [1, 2]) {
       $("#compareAnswer" + slot).textContent = "Ответ появится после отправки запроса.";
@@ -353,13 +374,14 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     answer.classList.remove("muted-answer"); answer.textContent = "Ожидаем ответ GenAPI…";
     round.results[slot] = { status: "running" };
     try {
-      const result = await genapi.chat(model, [{ role: "user", content: round.prompt, ...(round.attachments?.length ? { attachments: round.attachments } : {}) }]);
+      const result = await genapi.chat(model, [{ role: "user", content: round.prompt, ...(round.attachments?.length ? { attachments: round.attachments } : {}) }],{researchId:round.researchId,answerRequestId:round.answerIds?.[slot]||round.messageId});
       round.results[slot] = { status: "success", content: result.content };
       answer.textContent = result.content;
+      researchUI?.renderAnswer(result,answer);
       state.textContent = modelLabels[model] + " · Готово за " + Math.ceil((Date.now() - started) / 1000) + " с";
       if (round.chatId) {
         try {
-          const { error } = await supabase.from("multi_ai_messages").insert({ chat_id: round.chatId, role: "assistant", model_key: model, speaker: modelLabels[model], content: result.content });
+          const { error } = await supabase.from("multi_ai_messages").insert({ chat_id: round.chatId, role: "assistant", model_key: model, speaker: modelLabels[model], content: result.content,...(round.researchId?{research_job_id:round.researchId,citations:result.citations||[]}:{} ) });
           if (error) throw error;
         } catch { round.results[slot].unsaved = true; state.textContent += " · Ответ не сохранён, скопируй его"; }
       }
@@ -372,6 +394,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   async function executeComparison(round, slots) {
     compareBusy = true;
     compareFiles.lock(true);
+    compareResearch.lock(true);
     compareControls().forEach(control => { control.disabled = true; });
     for (const slot of [1, 2]) { $("#compareCopy" + slot).disabled = true; $("#compareRetry" + slot).hidden = true; }
     $("#compareStatus").textContent = "Выполняем " + slots.length + " " + (slots.length === 1 ? "запрос" : "запроса") + " GenAPI…";
@@ -379,6 +402,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     finally {
       compareBusy = false; compareControls().forEach(control => { control.disabled = false; });
       compareFiles.lock(false);
+      compareResearch.lock(false);
       const success = [1, 2].filter(slot => round.results[slot]?.status === "success").length;
       $("#compareStatus").textContent = "Готово ответов: " + success + " из 2. " + (round.chatId ? "Диалог с файлами доступен в истории Мульти-ИИ." : "Результаты доступны до перезагрузки страницы.");
       for (const slot of [1, 2]) {
@@ -397,6 +421,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     });
     $("#compareRetry" + slot).addEventListener("click", async () => {
       if (compareBusy || !comparison || comparison.results[slot]?.status !== "error") return;
+      if(comparison.researchId){comparison.answerIds||={};comparison.answerIds[slot]=crypto.randomUUID();}
       await executeComparison(comparison, [slot]);
     });
     updateCompareModel(slot);
@@ -406,14 +431,17 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     if (!currentUser) { toast("Сначала войди в аккаунт."); return; }
     try {
       const prompt = workflows.validatePrompt($("#comparePrompt").value.trim() || (compareFiles.count() ? "Проанализируй прикреплённые файлы." : ""));
+      if(compareResearch.mode()!=="off"&&prompt.length>500)throw new Error("Для интернет-поиска сократи запрос до 500 символов.");
       const models = [$("#compareModel1").value, $("#compareModel2").value];
       if (models[0] === models[1]) { toast("Выбери две разные модели для сравнения."); return; }
-      comparison = { prompt, models, results: {}, attachments: [] };
-      if (compareFiles.count()) {
+      comparison = { prompt, models, results: {}, attachments: [],messageId:crypto.randomUUID() };
+      const requestedCompareFiles=compareFiles.count()>0;
+      if (requestedCompareFiles || compareResearch.mode()!=="off") {
         compareBusy = true; compareFiles.lock(true); compareControls().forEach(control => { control.disabled = true; });
+        compareResearch.lock(true);
         try {
           await compareFiles.ready();
-          if (!compareFiles.count()) throw new Error("Не удалось подготовить вложения. Выбери файлы снова.");
+          if (requestedCompareFiles&&!compareFiles.count()) throw new Error("Не удалось подготовить вложения. Выбери файлы снова.");
           if (!comparisonDraftId) {
             const { data, error } = await supabase.from("multi_ai_chats").insert({ user_id: currentUser.id, title: "Сравнение: " + prompt.slice(0, 32), selected_models: models, sequential_mode: false }).select("id").single();
             if (error) throw new Error("Не удалось создать диалог для файлов.");
@@ -421,12 +449,13 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
           }
           comparison.chatId = comparisonDraftId;
           comparison.attachments = await compareFiles.upload(currentUser.id, "multi", comparisonDraftId);
-          const { error: saveError } = await supabase.from("multi_ai_messages").insert({ chat_id: comparisonDraftId, role: "user", speaker: "Ты", content: prompt, attachments: comparison.attachments });
+          const { error: saveError } = await supabase.from("multi_ai_messages").insert({ id:comparison.messageId,chat_id: comparisonDraftId, role: "user", speaker: "Ты", content: prompt, attachments: comparison.attachments });
           if (saveError) throw new Error("Не удалось сохранить файлы в истории. Генерации не запускались.");
           compareFiles.clear();
+          comparison.researchId=await compareResearch.prepare({userId:currentUser.id,chatId:comparison.chatId,messageId:comparison.messageId,prompt,onCreated:async id=>{const {error}=await supabase.from("multi_ai_messages").update({research_job_id:id}).eq("id",comparison.messageId).eq("chat_id",comparison.chatId);if(error)throw new Error("Не удалось сохранить связь исследования.");}});
           comparisonDraftId = null;
           await loadMultiChatList();
-        } finally { compareBusy = false; compareFiles.lock(false); compareControls().forEach(control => { control.disabled = false; }); }
+        } finally { compareBusy = false; compareFiles.lock(false); compareResearch.lock(false); compareControls().forEach(control => { control.disabled = false; }); }
       }
       await executeComparison(comparison, [1, 2]);
     } catch (error) { toast(error.message); }
@@ -440,7 +469,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   let multiOpening = false;
   const multiHistoryCache = new Map();
 
-  function addMultiMessage(speaker, content, role = "assistant", files = []) {
+  function addMultiMessage(speaker, content, role = "assistant", files = [], metadata = {}) {
     const box = $("#multiMessages");
     const welcome = $(".multi-welcome", box);
 
@@ -456,6 +485,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     const text = document.createElement("div");
     text.className = "multi-message-content";
     text.textContent = content;
+    researchUI?.renderAnswer({...metadata,content},text);
     attachmentsUI.renderSaved(files, text);
 
     row.append(name, text);
@@ -473,7 +503,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   }
 
   // Сохраняем одно сообщение в Supabase
-  async function saveMultiMessage(chatId, role, speaker, content, modelKey = null, files = []) {
+  async function saveMultiMessage(chatId, role, speaker, content, modelKey = null, files = [], metadata = {}) {
     const { error } = await supabase
       .from("multi_ai_messages")
       .insert({
@@ -482,7 +512,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
         model_key: modelKey,
         speaker: speaker,
         content: content,
-        ...(files.length ? { attachments: files } : {})
+        ...(files.length ? { attachments: files } : {}),...metadata
       });
 
     if (error) {
@@ -646,6 +676,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     if (!currentUser) return;
 
     multiOpening = true;
+    multiResearch.clear();
     try {
     const { data: chat, error: chatError } = await supabase
       .from("multi_ai_chats")
@@ -662,7 +693,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
 
     const { data: messages, error: messagesError } = await supabase
       .from("multi_ai_messages")
-      .select("id, role, model_key, speaker, content, created_at, attachments")
+      .select("id, role, model_key, speaker, content, created_at, attachments, research_job_id, citations")
       .eq("chat_id", chat.id)
       .order("created_at", { ascending: true });
 
@@ -704,12 +735,22 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
           message.speaker,
           message.content,
           message.role === "user" ? "user" : "assistant",
-          message.attachments
+          message.attachments,
+          message
         );
       });
     }
 
     $("#multiRunStatus").textContent = visibleMessages.some(message => message.saved === false) ? "Есть ответы, не сохранённые на сервере. Скопируй их перед закрытием страницы." : "История загружена. Можно продолжить обсуждение.";
+    const pending=visibleMessages.findLast(message=>message.role==="user");
+    if(pending?.research_job_id&&selectedModels.some(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model))){
+      multiResearch.offerResume(pending.research_job_id,async()=>{
+        if(multiSending)return;multiSending=true;multiResearch.lock(true);multiFiles.lock(true);
+        const button=$("#multiChatForm button[type='submit']"),input=$("#multiMessageInput");button.disabled=true;input.disabled=true;
+        try{await multiResearch.resume(pending.research_job_id);const missing=selectedModels.filter(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model));await runMultiDiscussion(chat.id,missing,chat.sequential_mode!==false,pending.content,pending.research_job_id,pending.id);}
+        finally{multiSending=false;multiResearch.lock(false);multiFiles.lock(false);button.disabled=false;input.disabled=false;}
+      });
+    }
     await loadMultiChatList();
     } catch { toast("Не удалось открыть диалог."); }
     finally { multiOpening = false; }
@@ -790,6 +831,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   // Создаём новый пустой диалог
   $("#newMultiChatBtn").addEventListener("click", () => {
     if (multiSending || multiOpening) { toast("Дождись завершения текущего действия."); return; }
+    multiResearch.clear();
     currentMultiChatId = null;
     $("#multiRunStatus").textContent = "Новый диалог. Выбери участников и отправь задачу.";
 
@@ -808,7 +850,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   });
 
   // Generate one reply per participant; a provider failure never discards other replies.
-  async function runMultiDiscussion(chatId, models, sequential, prompt) {
+  async function runMultiDiscussion(chatId, models, sequential, prompt, researchId = null, answerRequestId = null) {
     const history = multiHistoryCache.get(chatId) || [];
     const rows = new Map();
     for (const model of models) {
@@ -818,11 +860,11 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     }
     const results = await workflows.runDiscussion({
       models, sequential, history, prompt, names: modelLabels,
-      generate: (model, messages) => genapi.chat(model, messages),
+      generate: (model, messages) => genapi.chat(model, messages,{researchId,answerRequestId}),
       onResult: async message => {
         const cachedMessage = { ...message, saved: false };
         history.push(cachedMessage);
-        await saveMultiMessage(chatId, message.role, message.speaker, message.content, message.model_key);
+        await saveMultiMessage(chatId, message.role, message.speaker, message.content, message.model_key,[],...(message.research_job_id?[{research_job_id:message.research_job_id,citations:message.citations||[]}]:[]));
         cachedMessage.saved = true;
       },
       onState: (model, state, result) => {
@@ -832,6 +874,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
         row.classList.remove("is-pending");
         if (state === "success") {
           content.textContent = result.message.content;
+          researchUI?.renderAnswer(result.message,content);
           $("button", row).disabled = false;
           if (!result.saved) {
             const warning = document.createElement("small"); warning.className = "workflow-error";
@@ -855,6 +898,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     const requestedFiles = multiFiles.count() > 0;
     let prompt;
     try { prompt = workflows.validatePrompt(input.value.trim() || (multiFiles.count() ? "Проанализируй прикреплённые файлы." : "")); } catch (error) { toast(error.message); return; }
+    if(multiResearch.mode()!=="off"&&prompt.length>500){toast("Для интернет-поиска сократи запрос до 500 символов.");return;}
 
     if (!prompt) {
       toast("Сначала напиши сообщение для общего чата.");
@@ -882,6 +926,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
 
     multiSending = true;
     multiFiles.lock(true);
+    multiResearch.lock(true);
     const controls = [...$$('input[name="multiModel"]'), $("#multiAutoMode"), $("#newMultiChatBtn"), $("#deleteAllMultiChatsBtn")];
     controls.forEach(control => { control.disabled = true; });
     $("#multiRunStatus").textContent = "Сохраняем запрос…";
@@ -900,6 +945,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
 
       const operationChatId = currentMultiChatId;
       const files = await multiFiles.upload(currentUser.id, "multi", operationChatId);
+      const messageId=crypto.randomUUID();
       // Сохраняем сообщение пользователя
       await saveMultiMessage(
         operationChatId,
@@ -907,22 +953,27 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
         "Ты",
         prompt,
         null,
-        files
+        files,
+        {id:messageId}
       );
 
       const history = multiHistoryCache.get(operationChatId) || [];
-      history.push({ role: "user", speaker: "Ты", content: prompt, saved: true, attachments: files });
+      const userMessage={ id:messageId,role: "user", speaker: "Ты", content: prompt, saved: true, attachments: files };
+      history.push(userMessage);
       multiHistoryCache.set(operationChatId, history);
       addMultiMessage("Ты", prompt, "user", files);
       multiFiles.clear();
       input.value = "";
+      const researchId=await multiResearch.prepare({userId:currentUser.id,chatId:operationChatId,messageId,prompt,onCreated:async id=>{const {error}=await supabase.from("multi_ai_messages").update({research_job_id:id}).eq("id",messageId).eq("chat_id",operationChatId);if(error)throw new Error("Не удалось связать исследование с сообщением.");userMessage.research_job_id=id;}});
 
       // Сохраняем ответы выбранных моделей
       await runMultiDiscussion(
         operationChatId,
         selectedModels,
         sequential,
-        prompt
+        prompt,
+        researchId,
+        messageId
       );
       await loadMultiChatList();
       
@@ -933,6 +984,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     } finally {
       multiSending = false;
       multiFiles.lock(false);
+      multiResearch.lock(false);
       controls.forEach(control => { control.disabled = false; });
       input.disabled = false;
       sendButton.disabled = false;
@@ -1326,7 +1378,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     if (chatIds.length > 0) {
       const { data, error } = await supabase
         .from("ai_messages")
-        .select("id, chat_id, role, content, created_at, attachments")
+        .select("id, chat_id, role, content, created_at, attachments, research_job_id, citations")
         .in("chat_id", chatIds)
         .order("created_at", { ascending: true });
 
@@ -1340,9 +1392,12 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
       messages: messageRows
         .filter(message => message.chat_id === chat.id)
         .map(message => ({
+          id:message.id,
           role: message.role,
           content: message.content,
           attachments: message.attachments,
+          research_job_id:message.research_job_id,
+          citations:message.citations,
           model: modelLabels[chat.model] || "Ранее сохранённый ответ"
         }))
     }));

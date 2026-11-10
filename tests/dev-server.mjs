@@ -5,7 +5,7 @@ import { resolve, extname } from "node:path";
 const root=resolve(import.meta.dirname,"..");
 const sources={"/source/index.ts":"supabase/functions/genapi/index.ts","/source/attachments.mjs":"supabase/functions/genapi/attachments.mjs"};
 const types={".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".png":"image/png",".jpeg":"image/jpeg",".jpg":"image/jpeg",".svg":"image/svg+xml",".json":"application/json"};
-const allowed=new Set(["index.html","auth.html","profile.html","app.js","genapi-client.js","genapi-media.js","ai-workflows.js","chat-attachments.js","enhancements.js","styles.css","enhancements.css","manifest.json","service-worker.js"]);
+const allowed=new Set(["index.html","auth.html","profile.html","app.js","genapi-client.js","genapi-media.js","ai-workflows.js","chat-attachments.js","research-client.js","enhancements.js","styles.css","enhancements.css","manifest.json","service-worker.js"]);
 http.createServer(async(req,res)=>{
  try{
   const pathname=decodeURIComponent(new URL(req.url,"http://localhost").pathname);
