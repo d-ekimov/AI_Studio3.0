@@ -11,6 +11,7 @@
   window.aiStudioSupabase = supabase;
   const genapi = window.AIStudioGenAPI.create(supabase);
   const modelLabels = window.AIStudioGenAPI.names;
+  const workflows = window.AIStudioWorkflows;
   let chatSending = false;
   const pageNames = {chat:"Чат", compare:"Несколько ИИ", multi:"Мульти-ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
     const read = (key, fallback) => {
@@ -134,7 +135,7 @@ function renderSidebarProfile(user) {
       deleteButton.setAttribute("aria-label", "Удалить чат");
 
       deleteButton.addEventListener("click", async () => {
-        if (multiSending || chatSending) { toast("Дождись завершения ответов."); return; }
+        if (multiSending || multiOpening || chatSending) { toast("Дождись завершения ответов."); return; }
         const confirmed = confirm(
           `Удалить чат «${c.title || "Новый чат"}»?\n\nЭто действие нельзя отменить.`
         );
@@ -301,60 +302,95 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     clear();
   }
 });
-    const compareNames = {
-    chatgpt: "ChatGPT",
-    deepseek: "DeepSeek",
-    gemini: "Google Gemini"
-  };
-
+  let comparison = null;
+  let compareBusy = false;
+  const compareControls = () => [$("#compareRun"), $("#comparePrompt"), $("#compareModel1"), $("#compareModel2")];
   function updateCompareModel(slot) {
-    const select = $("#compareModel" + slot);
+    const model = $("#compareModel" + slot).value;
     const icon = $("#compareIcon" + slot);
-    const model = select.value;
-
-    icon.className = "provider-icon " +
-      (model === "deepseek" ? "deepseek" : "openai");
-
-    const imagePath = {
-      chatgpt: "./images/logos/gpt.jpeg",
-      deepseek: "./images/logos/deepseek.jpeg",
-      gemini: "./images/logos/gemini.png"
-    }[model];
-
-    icon.innerHTML = "";
+    icon.className = "provider-icon " + (model === "deepseek" ? "deepseek" : model === "gemini" ? "gemini" : "openai");
     const img = document.createElement("img");
-    img.src = imagePath;
-    img.alt = compareNames[model];
-    icon.appendChild(img);
+    img.src = { chatgpt: "./images/logos/gpt.jpeg", deepseek: "./images/logos/deepseek.jpeg", gemini: "./images/logos/gemini.png" }[model];
+    img.alt = modelLabels[model]; icon.replaceChildren(img);
   }
-
-  $("#compareModel1").addEventListener("change", () => updateCompareModel(1));
-  $("#compareModel2").addEventListener("change", () => updateCompareModel(2));
-
-  $("#compareRun").addEventListener("click", async () => {
-    const prompt = $("#comparePrompt").value.trim();
-    const button = $("#compareRun");
-    if (!prompt) { toast("Сначала напиши запрос."); return; }
-    if (button.disabled) return;
-    button.disabled = true;
-    const jobs = [1, 2].map(async slot => {
-      const model = $("#compareModel" + slot).value;
-      const answer = $(".compare-answer", $("#compareIcon" + slot).closest(".compare-card"));
-      answer.classList.remove("muted-answer"); answer.textContent = "Ожидаем ответ…";
-      try { answer.textContent = (await genapi.chat(model, [{ role: "user", content: prompt }])).content; }
-      catch (error) { answer.textContent = error.message; }
+  function resetComparison() {
+    comparison = null;
+    for (const slot of [1, 2]) {
+      $("#compareAnswer" + slot).textContent = "Ответ появится после отправки запроса.";
+      $("#compareState" + slot).textContent = "Готов к запуску";
+      $("#compareCopy" + slot).disabled = true;
+      $("#compareRetry" + slot).hidden = true;
+    }
+    $("#compareStatus").textContent = "Два независимых ответа на один запрос. Каждый запуск оплачивается отдельно.";
+  }
+  async function compareSlot(slot, round) {
+    const model = round.models[slot - 1];
+    const state = $("#compareState" + slot);
+    const answer = $("#compareAnswer" + slot);
+    const started = Date.now();
+    state.textContent = modelLabels[model] + " · Получаем ответ…";
+    answer.classList.remove("muted-answer"); answer.textContent = "Ожидаем ответ GenAPI…";
+    round.results[slot] = { status: "running" };
+    try {
+      const result = await genapi.chat(model, [{ role: "user", content: round.prompt }]);
+      round.results[slot] = { status: "success", content: result.content };
+      answer.textContent = result.content;
+      state.textContent = modelLabels[model] + " · Готово за " + Math.ceil((Date.now() - started) / 1000) + " с";
+    } catch (error) {
+      round.results[slot] = { status: "error" };
+      answer.textContent = error.message || "Не удалось получить ответ.";
+      state.textContent = modelLabels[model] + " · Ошибка";
+    }
+  }
+  async function executeComparison(round, slots) {
+    compareBusy = true;
+    compareControls().forEach(control => { control.disabled = true; });
+    for (const slot of [1, 2]) { $("#compareCopy" + slot).disabled = true; $("#compareRetry" + slot).hidden = true; }
+    $("#compareStatus").textContent = "Выполняем " + slots.length + " " + (slots.length === 1 ? "запрос" : "запроса") + " GenAPI…";
+    try { await Promise.all(slots.map(slot => compareSlot(slot, round))); }
+    finally {
+      compareBusy = false; compareControls().forEach(control => { control.disabled = false; });
+      const success = [1, 2].filter(slot => round.results[slot]?.status === "success").length;
+      $("#compareStatus").textContent = "Готово ответов: " + success + " из 2. Результаты доступны до перезагрузки страницы.";
+      for (const slot of [1, 2]) {
+        $("#compareCopy" + slot).disabled = round.results[slot]?.status !== "success";
+        $("#compareRetry" + slot).hidden = round.results[slot]?.status !== "error";
+      }
+    }
+  }
+  for (const slot of [1, 2]) {
+    $("#compareModel" + slot).addEventListener("change", () => { if (!compareBusy) { resetComparison(); updateCompareModel(slot); } });
+    $("#compareCopy" + slot).addEventListener("click", async () => {
+      const content = comparison?.results[slot]?.content;
+      if (!content) return;
+      try { await navigator.clipboard.writeText(content); toast("Ответ скопирован."); }
+      catch { toast("Выдели ответ и скопируй вручную."); }
     });
-    try { await Promise.all(jobs); } finally { button.disabled = false; }
+    $("#compareRetry" + slot).addEventListener("click", async () => {
+      if (compareBusy || !comparison || comparison.results[slot]?.status !== "error") return;
+      await executeComparison(comparison, [slot]);
+    });
+    updateCompareModel(slot);
+  }
+  $("#compareRun").addEventListener("click", async () => {
+    if (compareBusy) return;
+    if (!currentUser) { toast("Сначала войди в аккаунт."); return; }
+    try {
+      const prompt = workflows.validatePrompt($("#comparePrompt").value);
+      const models = [$("#compareModel1").value, $("#compareModel2").value];
+      if (models[0] === models[1]) { toast("Выбери две разные модели для сравнения."); return; }
+      comparison = { prompt, models, results: {} };
+      await executeComparison(comparison, [1, 2]);
+    } catch (error) { toast(error.message); }
   });
-  updateCompareModel(1);
-  updateCompareModel(2);
-  
+
   // ===== МУЛЬТИ-ИИ: ОБЩИЙ ДИАЛОГ С СОХРАНЕНИЕМ =====
 
   let currentMultiChatId = null;
 
-  const multiModels = Object.fromEntries(Object.entries(modelLabels).map(([key, name]) => [key, { name }]));
   let multiSending = false;
+  let multiOpening = false;
+  const multiHistoryCache = new Map();
 
   function addMultiMessage(speaker, content, role = "assistant") {
     const box = $("#multiMessages");
@@ -376,6 +412,15 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     row.append(name, text);
     box.appendChild(row);
     box.scrollTop = box.scrollHeight;
+    if (role === "assistant") {
+      const copy = document.createElement("button"); copy.type = "button"; copy.className = "text-action"; copy.textContent = "Скопировать ответ";
+      copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(text.textContent); toast("Ответ скопирован."); }
+        catch { toast("Выдели ответ и скопируй вручную."); }
+      });
+      row.appendChild(copy);
+    }
+    return row;
   }
 
   // Сохраняем одно сообщение в Supabase
@@ -423,6 +468,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     }
 
     currentMultiChatId = data.id;
+    multiHistoryCache.set(data.id, []);
     return data.id;
   }
 
@@ -515,6 +561,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
           return;
         }
 
+        multiHistoryCache.delete(chat.id);
         if (currentMultiChatId === chat.id) {
           currentMultiChatId = null;
 
@@ -541,9 +588,12 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
 
   // Открываем выбранный диалог
   async function openMultiChat(chatId) {
-    if (multiSending) { toast("Дождись завершения ответов."); return; }
+    if (multiOpening) return;
+    if (multiSending || multiOpening) { toast("Дождись завершения текущего действия."); return; }
     if (!currentUser) return;
 
+    multiOpening = true;
+    try {
     const { data: chat, error: chatError } = await supabase
       .from("multi_ai_chats")
       .select("id, title, selected_models, sequential_mode")
@@ -570,6 +620,9 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     }
 
     currentMultiChatId = chat.id;
+    const cached = multiHistoryCache.get(chat.id);
+    const visibleMessages = cached?.some(message => message.saved === false) ? cached : (messages || []);
+    multiHistoryCache.set(chat.id, visibleMessages);
 
     const selectedModels = Array.isArray(chat.selected_models)
       ? chat.selected_models
@@ -584,7 +637,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     const box = $("#multiMessages");
     box.innerHTML = "";
 
-    if (!messages || messages.length === 0) {
+    if (visibleMessages.length === 0) {
       box.innerHTML = `
         <div class="multi-welcome">
           <div class="multi-welcome-icon">✳</div>
@@ -593,7 +646,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
         </div>
       `;
     } else {
-      messages.forEach(message => {
+      visibleMessages.forEach(message => {
         addMultiMessage(
           message.speaker,
           message.content,
@@ -602,7 +655,10 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
       });
     }
 
+    $("#multiRunStatus").textContent = visibleMessages.some(message => message.saved === false) ? "Есть ответы, не сохранённые на сервере. Скопируй их перед закрытием страницы." : "История загружена. Можно продолжить обсуждение.";
     await loadMultiChatList();
+    } catch { toast("Не удалось открыть диалог."); }
+    finally { multiOpening = false; }
   }
 
   // Загружаем список и последний диалог
@@ -633,7 +689,7 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   
   // Удаляем все диалоги Мульти-ИИ текущего пользователя
   $("#deleteAllMultiChatsBtn").addEventListener("click", async () => {
-    if (multiSending) { toast("Дождись завершения ответов."); return; }
+    if (multiSending || multiOpening) { toast("Дождись завершения текущего действия."); return; }
     if (!currentUser) {
       toast("Сначала войди в аккаунт.");
       return;
@@ -667,6 +723,8 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     `;
 
     $("#multiMessageInput").value = "";
+    multiHistoryCache.clear();
+    $("#multiRunStatus").textContent = "Диалоги удалены. Можно начать новое обсуждение.";
 
     await loadMultiChatList();
     toast("Все диалоги удалены.");
@@ -674,8 +732,9 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
   
   // Создаём новый пустой диалог
   $("#newMultiChatBtn").addEventListener("click", () => {
-    if (multiSending) { toast("Дождись завершения ответов."); return; }
+    if (multiSending || multiOpening) { toast("Дождись завершения текущего действия."); return; }
     currentMultiChatId = null;
+    $("#multiRunStatus").textContent = "Новый диалог. Выбери участников и отправь задачу.";
 
     const box = $("#multiMessages");
     box.innerHTML = `
@@ -691,38 +750,53 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     $("#multiMessageInput").focus();
   });
 
-  // Генерируем ответы и сохраняем каждый из них
-  async function runMultiDiscussion(chatId, models, sequential) {
-    const { data, error } = await supabase.from("multi_ai_messages")
-      .select("role, content, speaker, created_at").eq("chat_id", chatId)
-      .order("created_at", { ascending: false }).limit(36);
-    if (error) throw new Error("Не удалось загрузить контекст диалога.");
-    const context = (data || []).reverse().map(m => ({ role: m.role, content: m.role === "assistant" ? m.speaker + ": " + m.content : m.content }));
-    const runModel = async key => {
-      const speaker = multiModels[key].name;
-      const messages = [...context];
-      if (messages.at(-1)?.role !== "user") messages.push({ role: "user", content: "Дополни предыдущие ответы по последнему запросу пользователя." });
-      const answer = (await genapi.chat(key, messages)).content;
-      if (currentMultiChatId === chatId) addMultiMessage(speaker, answer);
-      try { await saveMultiMessage(chatId, "assistant", speaker, answer, key); }
-      catch { throw new Error("Ответ получен, но не сохранён. Скопируй его перед уходом со страницы."); }
-      return { role: "assistant", content: speaker + ": " + answer };
-    };
-    if (sequential) {
-      for (const key of models) context.push(await runModel(key));
-    } else {
-      const results = await Promise.allSettled(models.map(runModel));
-      const failure = results.find(r => r.status === "rejected");
-      if (failure) throw failure.reason;
+  // Generate one reply per participant; a provider failure never discards other replies.
+  async function runMultiDiscussion(chatId, models, sequential, prompt) {
+    const history = multiHistoryCache.get(chatId) || [];
+    const rows = new Map();
+    for (const model of models) {
+      const row = addMultiMessage(modelLabels[model], "Ожидает очереди…");
+      $("button", row).disabled = true;
+      row.classList.add("is-pending"); rows.set(model, row);
     }
+    const results = await workflows.runDiscussion({
+      models, sequential, history, prompt, names: modelLabels,
+      generate: (model, messages) => genapi.chat(model, messages),
+      onResult: async message => {
+        const cachedMessage = { ...message, saved: false };
+        history.push(cachedMessage);
+        await saveMultiMessage(chatId, message.role, message.speaker, message.content, message.model_key);
+        cachedMessage.saved = true;
+      },
+      onState: (model, state, result) => {
+        const row = rows.get(model);
+        const content = $(".multi-message-content", row);
+        if (state === "running") { content.textContent = "Получаем ответ GenAPI…"; $("#multiRunStatus").textContent = "Отвечает " + modelLabels[model] + "…"; return; }
+        row.classList.remove("is-pending");
+        if (state === "success") {
+          content.textContent = result.message.content;
+          $("button", row).disabled = false;
+          if (!result.saved) {
+            const warning = document.createElement("small"); warning.className = "workflow-error";
+            warning.textContent = "Ответ получен, но не сохранён. Скопируй его перед закрытием страницы."; row.appendChild(warning);
+          }
+        } else { row.classList.add("workflow-error"); content.textContent = result.error; }
+      }
+    });
+    const success = results.filter(result => result.status === "success").length;
+    const unsaved = history.some(message => message.saved === false);
+    $("#multiRunStatus").textContent = "Получено ответов: " + success + " из " + models.length + ". " +
+      (unsaved ? "Есть несохранённые ответы — скопируй их перед закрытием страницы." : "История сохранена.") +
+      (success < models.length ? " Неудавшиеся запросы автоматически не повторяются." : "");
   }
 
   $("#multiChatForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (multiSending) return;
+    if (multiSending || multiOpening) return;
 
     const input = $("#multiMessageInput");
-    const prompt = input.value.trim();
+    let prompt;
+    try { prompt = workflows.validatePrompt(input.value); } catch (error) { toast(error.message); return; }
 
     if (!prompt) {
       toast("Сначала напиши сообщение для общего чата.");
@@ -749,6 +823,9 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     const sequential = $("#multiAutoMode").checked;
 
     multiSending = true;
+    const controls = [...$$('input[name="multiModel"]'), $("#multiAutoMode"), $("#newMultiChatBtn"), $("#deleteAllMultiChatsBtn")];
+    controls.forEach(control => { control.disabled = true; });
+    $("#multiRunStatus").textContent = "Сохраняем запрос…";
     input.disabled = true;
     sendButton.disabled = true;
 
@@ -769,6 +846,9 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
         prompt
       );
 
+      const history = multiHistoryCache.get(operationChatId) || [];
+      history.push({ role: "user", speaker: "Ты", content: prompt, saved: true });
+      multiHistoryCache.set(operationChatId, history);
       addMultiMessage("Ты", prompt, "user");
       input.value = "";
 
@@ -776,15 +856,18 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
       await runMultiDiscussion(
         operationChatId,
         selectedModels,
-        sequential
+        sequential,
+        prompt
       );
       await loadMultiChatList();
       
     } catch (error) {
       console.error("Ошибка Мульти-ИИ:", error);
+      $("#multiRunStatus").textContent = error.message || "Не удалось выполнить запрос Мульти-ИИ.";
       toast(error.message || "Не удалось выполнить запрос Мульти-ИИ.");
     } finally {
       multiSending = false;
+      controls.forEach(control => { control.disabled = false; });
       input.disabled = false;
       sendButton.disabled = false;
       input.focus();

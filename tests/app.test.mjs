@@ -5,7 +5,7 @@ import vm from "node:vm";
 
 const flush = async () => { for (let i=0;i<8;i++) await new Promise(resolve => setImmediate(resolve)); };
 
-function appFixture({ saveFailure = false, multi = false } = {}) {
+function appFixture({ saveFailure = false, multi = false, generate, multiSaveFailure = false } = {}) {
   class Element {
     constructor() { this.listeners = {}; this.style = {}; this.dataset = {}; this.children = []; this.value = ""; this.checked = false; this.disabled = false; this.textContent = ""; this.classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } }; }
     addEventListener(name, fn) { this.listeners[name] = fn; }
@@ -16,7 +16,13 @@ function appFixture({ saveFailure = false, multi = false } = {}) {
     focus() {}
     remove() {}
     contains() { return false; }
-    querySelector(selector) { return nodes.get(selector) || new Element(); }
+    querySelector(selector) {
+      for (const child of this.children) {
+        if (selector.startsWith(".") && child.className?.split(" ").includes(selector.slice(1))) return child;
+        if (selector === "button" && child.tagName === "button") return child;
+      }
+      return nodes.get(selector) || new Element();
+    }
     querySelectorAll() { return []; }
     closest() { return new Element(); }
   }
@@ -46,7 +52,7 @@ function appFixture({ saveFailure = false, multi = false } = {}) {
           if (id !== "multi-a") return Promise.reject(new Error("Wrong multi conversation ID: " + id)).then(resolve,reject);
           return Promise.resolve({ data: rows.filter(r => r.table === table && r.value.chat_id === id).map(r => r.value) }).then(resolve,reject);
         }
-        return Promise.resolve({ data: [], error: saveFailure && table === "ai_messages" && op === "insert" ? { message: "save failed" } : null }).then(resolve,reject);
+        return Promise.resolve({ data: [], error: (saveFailure && table === "ai_messages" || multiSaveFailure && table === "multi_ai_messages" && payload?.role === "assistant") && op === "insert" ? { message: "save failed" } : null }).then(resolve,reject);
       },
     }; return builder;
   };
@@ -56,10 +62,11 @@ function appFixture({ saveFailure = false, multi = false } = {}) {
   const document = {
     querySelector: selector => nodes.get(selector) || new Element(),
     querySelectorAll: selector => selector.includes('input[name="multiModel"]') ? modelInputs : [],
-    createElement: () => new Element(), addEventListener() {}, body: new Element(),
+    createElement: tag => { const el = new Element(); el.tagName = tag; return el; }, addEventListener() {}, body: new Element(),
   };
   const names = { chatgpt: "GPT-6 Sol", gemini: "Gemini 3.7 Flash", deepseek: "DeepSeek V4.1 Flash" };
-  const sandbox = { document, console, confirm: () => true, setTimeout: () => 1, clearTimeout() {}, localStorage: { getItem() { return null; }, setItem() {} }, window: { innerWidth: 1200, scrollTo() {}, location: {}, supabase: { createClient: () => supabase }, AIStudioGenAPI: { names, context: value => value, create: () => ({ chat: async (model, messages) => { apiCalls.push({ model, messages: structuredClone(messages) }); return multi ? { content: "Ответ " + model } : deferred; } }) } } };
+  const sandbox = { document, console, confirm: () => true, setTimeout: () => 1, clearTimeout() {}, localStorage: { getItem() { return null; }, setItem() {} }, window: { innerWidth: 1200, scrollTo() {}, location: {}, supabase: { createClient: () => supabase }, AIStudioGenAPI: { names, context: value => value, create: () => ({ chat: async (model, messages) => { apiCalls.push({ model, messages: structuredClone(messages) }); return generate ? generate(model, messages) : multi ? { content: "Ответ " + model } : deferred; } }) } } };
+  vm.runInNewContext(readFileSync(new URL("../ai-workflows.js", import.meta.url), "utf8"), sandbox);
   vm.runInNewContext(readFileSync(new URL("../app.js", import.meta.url), "utf8"), sandbox, { filename: "app.js" });
   return { nodes, rows, apiCalls, resolveReply, sandbox };
 }
@@ -96,14 +103,66 @@ test("sequential multi-AI uses the captured chat ID and passes previous answers"
   await submit({ preventDefault() {} });
   await pending;
   assert.equal(f.apiCalls.length, 2);
-  assert.equal(f.apiCalls[0].messages.at(-1).content, "Обсуди идею");
+  assert.ok(f.apiCalls[0].messages.at(-1).content.includes("Обсуди идею"));
   assert.ok(f.apiCalls[1].messages.some(m => m.content.includes("Ответ chatgpt")));
   assert.ok(f.rows.filter(r => r.table === "multi_ai_messages").every(r => r.value.chat_id === "multi-a"));
   assert.equal(f.nodes.get("#multiMessageInput").disabled, false);
+  const replies = f.nodes.get("#multiMessages").children.filter(row => row.className === "multi-message-row assistant");
+  assert.equal(replies.length, 2);
+  assert.equal(replies[0].querySelector(".multi-message-content").textContent, "Ответ chatgpt");
+  assert.equal(replies[1].querySelector(".multi-message-content").textContent, "Ответ gemini");
+});
+test("comparison retries only the failed model with its original prompt", async () => {
+  let fail = true;
+  const f = appFixture({ generate: async model => { if (model === "gemini" && fail) throw new Error("Провайдер недоступен"); return { content: "Ответ " + model }; } });
+  await flush();
+  f.nodes.get("#comparePrompt").value = "Исходный запрос";
+  await f.nodes.get("#compareRun").listeners.click();
+  assert.equal(f.apiCalls.length, 2);
+  assert.equal(f.nodes.get("#compareAnswer1").textContent, "Ответ chatgpt");
+  assert.equal(f.nodes.get("#compareRetry1").hidden, true);
+  assert.equal(f.nodes.get("#compareRetry2").hidden, false);
+  fail = false; f.nodes.get("#comparePrompt").value = "Уже другой запрос";
+  await f.nodes.get("#compareRetry2").listeners.click();
+  assert.equal(f.apiCalls.length, 3);
+  assert.equal(f.apiCalls[2].model, "gemini");
+  assert.equal(f.apiCalls[2].messages[0].content, "Исходный запрос");
+  assert.equal(f.nodes.get("#compareAnswer1").textContent, "Ответ chatgpt");
+});
+test("comparison rejects duplicate models and locks controls while waiting", async () => {
+  const f = appFixture(); await flush();
+  f.nodes.get("#comparePrompt").value = "Привет";
+  f.nodes.get("#compareModel2").value = "chatgpt";
+  await f.nodes.get("#compareRun").listeners.click();
+  assert.equal(f.apiCalls.length, 0);
+  f.nodes.get("#compareModel2").value = "gemini";
+  const pending = f.nodes.get("#compareRun").listeners.click(); await flush();
+  assert.equal(f.nodes.get("#compareModel1").disabled, true);
+  await f.nodes.get("#compareRun").listeners.click();
+  assert.equal(f.apiCalls.length, 2);
+  f.resolveReply({ content: "готово" }); await pending;
+  assert.equal(f.nodes.get("#compareModel1").disabled, false);
+});
+test("multi-AI continues after one model fails and reports partial completion", async () => {
+  const f = appFixture({ multi: true, generate: async model => { if (model === "chatgpt") throw new Error("Временно недоступно"); return { content: "Ответ Gemini" }; } });
+  await flush(); f.nodes.get("#multiMessageInput").value = "Обсуди идею";
+  await f.nodes.get("#multiChatForm").listeners.submit({ preventDefault() {} });
+  assert.equal(f.apiCalls.length, 2);
+  assert.match(f.nodes.get("#multiRunStatus").textContent, /1 из 2/);
+  assert.equal(f.rows.filter(r => r.table === "multi_ai_messages" && r.value.role === "assistant").length, 1);
+});
+test("multi-AI preserves paid replies in context when saving fails", async () => {
+  const f = appFixture({ multi: true, multiSaveFailure: true });
+  await flush(); f.nodes.get("#multiMessageInput").value = "Обсуди идею";
+  await f.nodes.get("#multiChatForm").listeners.submit({ preventDefault() {} });
+  assert.equal(f.apiCalls.length, 2);
+  assert.ok(f.apiCalls[1].messages.some(m => m.content.includes("Ответ chatgpt")));
+  assert.match(f.nodes.get("#multiRunStatus").textContent, /несохранённые ответы/);
 });
 test("HTML loads gateway client before app and keeps credentials out of media forms", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.ok(html.indexOf('src="genapi-client.js"') < html.indexOf('src="app.js"'));
+  assert.ok(html.indexOf('src="ai-workflows.js"') < html.indexOf('src="app.js"'));
   assert.ok(html.indexOf('src="app.js"') < html.indexOf('src="genapi-media.js"'));
   assert.equal((html.match(/data-media-model=/g) || []).length, 3);
   assert.ok(!html.includes('id="apiKey'));

@@ -55,7 +55,8 @@
       </section>
       <section class="page" id="page-compare">
         <div class="page-header"><div class="eyebrow">СРАВНЕНИЕ МОДЕЛЕЙ</div><h1>Несколько ИИ, <span>одна задача.</span></h1><p>Отправь один запрос нескольким моделям и сравни подходы. Каждая выбранная модель выполняет отдельный запрос GenAPI.</p></div>
-        <div class="compare-input"><textarea id="comparePrompt" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
+        <div class="compare-input"><textarea id="comparePrompt" maxlength="6000" aria-label="Запрос для сравнения моделей" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
+        <p id="compareStatus" class="workflow-status" role="status" aria-live="polite">Два независимых ответа на один запрос. Результаты сравнения доступны до перезагрузки страницы.</p>
         <div class="compare-grid" id="compareGrid">
           <article class="compare-card">
             <div class="compare-card-head">
@@ -63,14 +64,16 @@
               <div class="compare-model-select">
                 <strong>Первая модель</strong>
                 <select class="compare-model" id="compareModel1" aria-label="Первая модель">
-                  <option value="chatgpt">ChatGPT</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="gemini">Google Gemini</option>
+                  <option value="chatgpt">GPT-6 Sol</option>
+                  <option value="deepseek">DeepSeek V4.1 Flash</option>
+                  <option value="gemini">Gemini 3.7 Flash</option>
                 </select>
               </div>
               <span class="demo-chip">GenAPI</span>
             </div>
-            <div class="compare-answer muted-answer">Ответ появится после отправки запроса.</div>
+            <div class="compare-answer muted-answer" id="compareAnswer1">Ответ появится после отправки запроса.</div>
+            <div class="workflow-result-status" id="compareState1" role="status" aria-live="polite">Готов к запуску</div>
+            <div class="workflow-actions"><button class="outline-btn" id="compareCopy1" type="button" disabled>Скопировать ответ</button><button class="outline-btn" id="compareRetry1" type="button" hidden>Повторить эту модель · платный запрос</button></div>
           </article>
           <article class="compare-card">
             <div class="compare-card-head">
@@ -78,14 +81,16 @@
               <div class="compare-model-select">
                 <strong>Вторая модель</strong>
                 <select class="compare-model" id="compareModel2" aria-label="Вторая модель">
-                  <option value="chatgpt">ChatGPT</option>
-                  <option value="deepseek" selected>DeepSeek</option>
-                  <option value="gemini">Google Gemini</option>
+                  <option value="chatgpt">GPT-6 Sol</option>
+                  <option value="deepseek" selected>DeepSeek V4.1 Flash</option>
+                  <option value="gemini">Gemini 3.7 Flash</option>
                 </select>
               </div>
               <span class="demo-chip">GenAPI</span>
             </div>
-            <div class="compare-answer muted-answer">Ответ появится после отправки запроса.</div>
+            <div class="compare-answer muted-answer" id="compareAnswer2">Ответ появится после отправки запроса.</div>
+            <div class="workflow-result-status" id="compareState2" role="status" aria-live="polite">Готов к запуску</div>
+            <div class="workflow-actions"><button class="outline-btn" id="compareCopy2" type="button" disabled>Скопировать ответ</button><button class="outline-btn" id="compareRetry2" type="button" hidden>Повторить эту модель · платный запрос</button></div>
           </article>
         </div>
         <div class="info-banner"><span>✦</span><div><strong>Ответы выбранных моделей</strong><p>Сравнивай независимые ответы здесь или передавай ответы между моделями в последовательном режиме Мульти-ИИ.</p></div></div>
@@ -121,23 +126,23 @@
       <div class="multi-participants">
         <div class="multi-participants-heading">
           <strong>Участники диалога</strong>
-          <span>Выбери команду</span>
+          <span>Порядок обсуждения: GPT → DeepSeek → Gemini</span>
         </div>
 
         <div class="multi-participant-options">
           <label>
             <input type="checkbox" name="multiModel" value="chatgpt" checked>
-            <span>ChatGPT</span>
+            <span>GPT-6 Sol</span>
           </label>
 
           <label>
             <input type="checkbox" name="multiModel" value="deepseek" checked>
-            <span>DeepSeek</span>
+            <span>DeepSeek V4.1 Flash</span>
           </label>
 
           <label>
             <input type="checkbox" name="multiModel" value="gemini">
-            <span>Gemini</span>
+            <span>Gemini 3.7 Flash</span>
           </label>
         </div>
 
@@ -146,6 +151,7 @@
           <span>Последовательное обсуждение</span>
         </label>
       </div>
+    <p id="multiRunStatus" class="workflow-status" role="status" aria-live="polite">Выбери участников и отправь задачу.</p>
     <div class="multi-chat-messages" id="multiMessages">
       <div class="multi-welcome">
         <div class="multi-welcome-icon">✳</div>
@@ -253,6 +259,7 @@
   <dialog id="appDialog"><form method="dialog" class="dialog-form"><button class="dialog-close" aria-label="Закрыть">×</button><div class="eyebrow" id="dialogEyebrow">AI STUDIO</div><h2 id="dialogTitle">Заголовок</h2><p id="dialogText">Текст</p><div id="dialogFields"></div><div class="dialog-actions"><button class="outline-btn" value="cancel">Отмена</button><button class="primary-btn" id="dialogConfirm" value="default">Продолжить</button></div></form></dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="genapi-client.js"></script>
+<script src="ai-workflows.js"></script>
 <script src="app.js"></script>
 <script src="genapi-media.js"></script>
 <script src="enhancements.js"></script>

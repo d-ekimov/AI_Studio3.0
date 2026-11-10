@@ -150,3 +150,14 @@ opacity: 1;
 .media-result p { min-height:0; }
 .media-status { overflow-wrap:anywhere; }
 button:disabled { cursor:wait; opacity:.65; }
+
+/* Comparison and multi-model discussion states */
+.workflow-status { margin:12px 0; padding:10px 14px; color:var(--muted); border:1px solid var(--border); border-radius:10px; font-size:12px; overflow-wrap:anywhere; }
+.multi-chat-panel>.workflow-status { margin:12px; }
+.workflow-result-status { margin-top:14px; color:var(--muted); font-size:12px; }
+.workflow-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+#page-compare [hidden] { display:none !important; }
+.workflow-error { color:var(--red); }
+.multi-message-row.is-pending { opacity:.7; border-style:dashed; }
+.multi-message-row .text-action { width:auto; font-size:11px; }
+@media(max-width:760px){.workflow-actions>button{flex:1;white-space:normal;min-height:40px}.workflow-status{line-height:1.6}}

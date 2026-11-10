@@ -76,7 +76,7 @@ test("maps all text models and fixes output budget and provider destination", as
     assert.equal(result.status, 200);
     assert.equal(result.body.content, "Реальный ответ");
     const upstream = f.calls[1];
-    assert.equal(upstream.url, "https://proxy.gen-api.ru/v1");
+    assert.equal(upstream.url, "https://proxy.gen-api.ru/v1/chat/completions");
     assert.equal(JSON.parse(upstream.init.body).model, slug);
     assert.equal(JSON.parse(upstream.init.body).max_tokens, 2048);
     assert.equal(JSON.parse(upstream.init.body).stream, false);
@@ -117,9 +117,31 @@ test("creates media jobs with only approved parameters", async () => {
     assert.ok(result.body.ticket);
     const payload = JSON.parse(f.calls[1].init.body);
     assert.equal(payload[field], "Задача");
-    assert.equal(payload.callback_url, null);
+    assert.equal(Object.hasOwn(payload, "callback_url"), false);
     assert.notEqual(payload.width, 99999);
   }
+});
+test("media polling requests omit callback_url for all three models (GenAPI 422 regression)", async () => {
+  for (const model of ["image", "audio", "video"]) {
+    const f = fixture({ provider: (_url, init) => {
+      const payload = JSON.parse(init.body);
+      if (Object.hasOwn(payload, "callback_url")) return response({ error: true, errors_validation: { callback_url: ["Invalid URL"] } }, 422);
+      return response({ request_id: 123 });
+    } });
+    const result = await f.request({ action: "media", model, prompt: "Тест", videoUrl: "https://cdn.example/video.mp4", callback_url: null });
+    assert.equal(result.status, 200);
+    assert.equal(result.body.requestId, 123);
+  }
+});
+test("422 reports known field names without leaking upstream messages, values or arbitrary keys", async () => {
+  const secret = "fake-provider-secret-only-for-tests";
+  const f = fixture({ provider: () => response({ error: true, errors_validation: { voice: [secret], text: ["private user input"], [secret]: ["do not expose"] }, message: secret }, 422) });
+  const result = await f.request({ action: "media", model: "audio", prompt: "Привет" });
+  assert.equal(result.status, 422);
+  assert.match(result.body.error, /voice, text/);
+  assert.ok(!JSON.stringify(result.body).includes(secret));
+  assert.ok(!JSON.stringify(result.body).includes("private user input"));
+  assert.equal(f.calls.length, 2);
 });
 test("rejects missing or non-public video URLs without provider calls", async () => {
   for (const videoUrl of [undefined, "http://cdn.example/a", "https://127.0.0.1/a", "https://localhost/a", "https://a.local/a", "https://user:pass@cdn.example/a"]) {

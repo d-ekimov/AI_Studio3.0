@@ -89,7 +89,7 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
   }
   async function provider(path, apiKey, body) {
     const isChat = path === "chat";
-    const response = await fetcher(isChat ? "https://proxy.gen-api.ru/v1" : `https://api.gen-api.ru/api/v1/${path}`, {
+    const response = await fetcher(isChat ? "https://proxy.gen-api.ru/v1/chat/completions" : `https://api.gen-api.ru/api/v1/${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -98,6 +98,14 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
     });
     // Never return raw upstream errors, request headers, inputs or secrets to the browser/log.
     if (!response.ok) {
+      if (response.status === 422) {
+        // Return only known parameter names, never upstream messages or submitted values.
+        let validation;
+        try { validation = (await response.json()).errors_validation; } catch {}
+        const known = ["callback_url", "prompt", "model", "width", "height", "enable_safey_checker", "videoUri", "promptText", "ratio", "text", "voice", "language_code", "turbo", "output_format"];
+        const fields = validation && typeof validation === "object" ? Object.keys(validation).filter(name => known.includes(name)) : [];
+        throw new GatewayError(422, fields.length ? `GenAPI отклонил параметры: ${fields.join(", ")}. Проверь значения этих полей.` : "GenAPI отклонил параметры (HTTP 422). Проверь описание, исходный файл и настройки модели.");
+      }
       const hints = { 401: "Проверь ключ GenAPI в Secrets Supabase.", 402: "Недостаточно средств на GenAPI.", 429: "GenAPI ограничил частоту запросов. Подожди перед новой попыткой." };
       throw new GatewayError(response.status === 429 ? 429 : 502, hints[response.status] || `GenAPI отклонил запрос (HTTP ${response.status}). Проверь модель и параметры.`);
     }
@@ -163,7 +171,8 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
         if (!["chatgpt", "deepseek", "gemini"].includes(body.model)) throw new GatewayError(400, "Выбери текстовую модель.");
         payload = { model: slug, messages: validateMessages(body.messages), max_tokens: 2048, stream: false };
       } else {
-        payload = { ...mediaInput(body), callback_url: null };
+        // Polling is used instead of webhooks. GenAPI rejects an explicitly null callback_url.
+        payload = mediaInput(body);
       }
       const minute = Math.floor(now() / 60000);
       if (windows.size > 1000) for (const [id, window] of windows) if (window.minute !== minute) windows.delete(id);
