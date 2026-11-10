@@ -209,7 +209,7 @@ content.textContent=m.content ?? m.text ?? "";
     });
     box.scrollTop=box.scrollHeight;
     const pending = c?.messages.findLast(m=>m.role==="user");
-    if(pending?.research_job_id&&!c.messages.some(m=>m.role==="assistant"&&m.research_job_id===pending.research_job_id))chatResearch.offerResume(pending.research_job_id,()=>resumeChatResearch(c,pending));
+    if(pending?.research_job_id&&!c.messages.some(m=>m.role==="assistant"&&m.research_job_id===pending.research_job_id))chatResearch.offerResume(pending.research_job_id,(_,newAnswer)=>resumeChatResearch(c,pending,newAnswer));
   };
   const persistChats=()=>{renderHistory();};
 const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;}chatResearch.clear();activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
@@ -249,10 +249,10 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     c.model=selected;const {error}=await supabase.from("ai_chats").update({updated_at:new Date().toISOString(),model:selected}).eq("id",c.id).eq("user_id",currentUser.id);
     if(error)toast("Сообщения сохранены, но дата чата не обновлена.");persistChats();
   }
-  async function resumeChatResearch(c,message){
+  async function resumeChatResearch(c,message,newAnswer=false){
     if(chatSending)return;chatSending=true;chatResearch.lock(true);chatFiles.lock(true);
     const button=$("#chatForm button[type='submit']"),input=$("#messageInput");button.disabled=true;input.disabled=true;
-    try{await chatResearch.resume(message.research_job_id);await finishChatAnswer(c,c.model||$("#modelSelect").value,message.research_job_id,message.id);}
+    try{await chatResearch.resume(message.research_job_id);await finishChatAnswer(c,c.model||$("#modelSelect").value,message.research_job_id,newAnswer?crypto.randomUUID():message.id);}
     catch(error){toast(error.message);}finally{chatSending=false;chatResearch.lock(false);chatFiles.lock(false);button.disabled=false;input.disabled=false;renderChat();}
   }
   const sendMessage = async (text) => {
@@ -744,10 +744,10 @@ const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;
     $("#multiRunStatus").textContent = visibleMessages.some(message => message.saved === false) ? "Есть ответы, не сохранённые на сервере. Скопируй их перед закрытием страницы." : "История загружена. Можно продолжить обсуждение.";
     const pending=visibleMessages.findLast(message=>message.role==="user");
     if(pending?.research_job_id&&selectedModels.some(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model))){
-      multiResearch.offerResume(pending.research_job_id,async()=>{
+      multiResearch.offerResume(pending.research_job_id,async(_,newAnswer)=>{
         if(multiSending)return;multiSending=true;multiResearch.lock(true);multiFiles.lock(true);
         const button=$("#multiChatForm button[type='submit']"),input=$("#multiMessageInput");button.disabled=true;input.disabled=true;
-        try{await multiResearch.resume(pending.research_job_id);const missing=selectedModels.filter(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model));await runMultiDiscussion(chat.id,missing,chat.sequential_mode!==false,pending.content,pending.research_job_id,pending.id);}
+        try{await multiResearch.resume(pending.research_job_id);const missing=selectedModels.filter(model=>!visibleMessages.some(message=>message.role==="assistant"&&message.research_job_id===pending.research_job_id&&message.model_key===model));await runMultiDiscussion(chat.id,missing,chat.sequential_mode!==false,pending.content,pending.research_job_id,newAnswer?crypto.randomUUID():pending.id);}
         finally{multiSending=false;multiResearch.lock(false);multiFiles.lock(false);button.disabled=false;input.disabled=false;}
       });
     }

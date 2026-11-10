@@ -1,4 +1,4 @@
-const CACHE_NAME = "ai-studio-shell-v6";
+const CACHE_NAME = "ai-studio-shell-v7";
 
 const APP_SHELL = [
   "./",

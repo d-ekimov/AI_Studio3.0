@@ -29,6 +29,15 @@ test("research composer persists the job link before advancing and reuses its sa
  assert.equal(f.calls.filter(call=>call.action==="create").length,1);assert.equal(f.calls.filter(call=>call.action==="step").length,1);assert.equal(linked,2);
 });
 test("search controls stay hidden until live preview is explicitly enabled",()=>{assert.equal(fixture("").form.previous.hidden,true);assert.equal(fixture().form.previous.hidden,false);});
+
+test("resume reuses the receipt while an explicitly paid retry does not create another search",async()=>{
+ for(const index of[0,1]){
+  const f=fixture(),received=[];f.composer.offerResume("saved-job",async(...args)=>received.push(args));
+  const buttons=f.form.previous.children[2].children[2].children;
+  await buttons[index].listeners.click();
+  assert.deepEqual(received[0],["saved-job",index===1]);assert.equal(f.calls.length,0);
+ }
+});
 test("citation rendering links only safe stored URLs and treats source content as text",()=>{
  const f=fixture(),container=new f.Element();f.ui.renderAnswer({content:"Claim [S1] <script>bad()</script> [S99]",citations:[{label:"S1",title:"Source",url:"https://example.org/",quote:"<img src=x onerror=bad()>"},{label:"S99",title:"Bad",url:"javascript:bad()",quote:"Not a URL"}]},container);
  const nodes=[];function walk(node){nodes.push(node);node.children.forEach(walk);}walk(container);
