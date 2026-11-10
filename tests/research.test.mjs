@@ -85,7 +85,7 @@ test("grounded answer removes claims rejected by verification and uses only stor
   if(url.includes("research_sources?"))return json([{id:"stored-source",label:"S1",url:"https://supabase.com/docs",title:"Limits",status:"extracted",content:passage}]);
   if(url.includes("research_calls?")){receipts.push(JSON.parse(init.body));return json([]);}throw new Error(url);
  };
- const provider=async payload=>{providerCalls++;assert.equal(payload.messages[0].role,"system");return {usage:{prompt_tokens:100,completion_tokens:50},choices:[{message:{content:providerCalls===1?JSON.stringify({sections:[{heading:"Memory",claims:[{text:"Memory limit is 256 MB.",evidence:[{source_id:"S1",quote:"maximum memory allowance of 256 MB"}]},{text:"Memory is unlimited.",evidence:[{source_id:"S1",quote:"maximum memory allowance of 256 MB"}]}]}]}):'{"supported":[true,false]}'}}]};};
+ const provider=async payload=>{providerCalls++;assert.equal(payload.messages[0].role,"system");assert.equal(payload.response_format.type,"json_object");return {usage:{prompt_tokens:100,completion_tokens:50},choices:[{message:{content:providerCalls===1?JSON.stringify({sections:[{heading:"Memory",claims:[{text:"Memory limit is 256 MB.",evidence:[{source_id:"S1",quote:"maximum memory allowance of 256 MB"}]},{text:"Memory is unlimited.",evidence:[{source_id:"S1",quote:"maximum memory allowance of 256 MB"}]}]}]}):'{"supported":[true,false]}'}}]};};
  const result=await groundedChat({body:{model:"gemini",researchId:jobId,answerRequestId:userId},user:{id:userId},env,fetcher,provider,messages:[{role:"user",content:"memory?"}]});
  assert.equal(providerCalls,2);assert.match(result.content,/256 MB/);assert.ok(!result.content.includes("unlimited"));assert.equal(result.citations[0].url,"https://supabase.com/docs");assert.equal(receipts[0].status,"succeeded");
 });
@@ -98,3 +98,4 @@ test("a completed research answer is replayed from its receipt without another p
 test("another user's research cannot reach GenAPI",async()=>{
  let paid=0;await assert.rejects(()=>groundedChat({body:{model:"chatgpt",researchId:jobId,answerRequestId:userId},user:{id:userId},env,fetcher:async url=>{assert.ok(url.includes("&user_id=eq."+userId));return json([]);},provider:()=>{paid++;},messages:[]}),/недоступно/);assert.equal(paid,0);
 });
+
