@@ -65,7 +65,13 @@
     offerResume(id,callback){
      if(busy||!id)return;
      activeId=id;panel.hidden=false;cancel.hidden=true;status.textContent="В этом сообщении есть сохранённое исследование. Можно продолжить получение ответа без нового поиска.";sources.replaceChildren();
-     const resume=document.createElement("button");resume.type="button";resume.className="outline-btn";resume.textContent="Продолжить получение ответа";resume.addEventListener("click",async()=>{resume.disabled=true;try{await callback(id);}catch(error){status.textContent=error.message;resume.disabled=false;}});sources.appendChild(resume);
+     const resume=document.createElement("button"),retry=document.createElement("button");
+     for(const button of[resume,retry]){button.type="button";button.className="outline-btn";}
+     resume.textContent="Продолжить получение ответа";
+     retry.textContent="Новый платный ответ GenAPI — без повторного поиска";
+     for(const [button,newAnswer]of[[resume,false],[retry,true]])button.addEventListener("click",async()=>{resume.disabled=true;retry.disabled=true;try{await callback(id,newAnswer);}catch(error){status.textContent=error.message;resume.disabled=false;retry.disabled=false;}});
+     const warning=document.createElement("small");warning.textContent="Продолжение использует прежнюю квитанцию. Новый ответ оплачивается отдельно; запускай его после завершения или ошибки предыдущей генерации.";
+     sources.append(resume,retry,warning);
     },
     clear(){if(!busy){activeId=null;panel.hidden=true;sources.replaceChildren();}},
    };
