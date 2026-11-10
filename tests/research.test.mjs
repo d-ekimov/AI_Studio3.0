@@ -19,6 +19,7 @@ test("research search adapter uses fixed API endpoints and never places keys in 
  assert.equal(JSON.parse(calls[0].init.body).auto_parameters,false);assert.equal(JSON.parse(calls[0].init.body).search_depth,"advanced");assert.equal(JSON.parse(calls[0].init.body).max_age_hours,undefined);
  for(const call of calls){assert.ok(!call.url.includes("fake-search-key"));assert.ok(!call.init.body.includes("fake-search-key"));assert.equal(call.init.redirect,"error");}
  await assert.rejects(()=>tavily.extract([{url:"https://localhost/"}]));
+ await tavily.search("Актуальные лимиты current documentation");assert.equal(JSON.parse(calls.at(-1).init.body).max_age_hours,undefined);
 });
 test("HTTP 200 with partial/empty extractions never verifies unavailable pages",()=>{
  const items=searchResults({results:[{url:"https://supabase.com/docs",title:"Limits"},{url:"https://127.0.0.1/"},{url:"https://supabase.com/docs#duplicate"},{url:"https://example.com/news",title:"News"}]});
@@ -30,6 +31,7 @@ test("HTTP 200 with partial/empty extractions never verifies unavailable pages",
 test("bounded extraction stops oversized streams and hides provider error bodies",async()=>{
  await assert.rejects(()=>boundedJson(new Response('x'.repeat(100)),20),/слишком большой/);
  await assert.rejects(()=>boundedJson(new Response('fake-secret-debug',{status:500})),error=>!error.message.includes("fake-secret-debug"));
+ await assert.rejects(()=>boundedJson(new Response('fake-secret-debug',{status:429})),error=>error.message.includes("частоту")&&!error.message.includes("fake-secret-debug"));
 });
 test("cited answers reject invented IDs and quotes absent from the actual extracted text",()=>{
  const sources=[{id:"S1",text:passage}];
@@ -63,6 +65,13 @@ test("search timeout records an uncertain paid step without automatic provider r
  let paid=0;const patches=[];const job={id:jobId,user_id:userId,query:"test",mode:"web",phase:"search",work:{queries:["test"],searchIndex:0,urls:[]},status:"running"};
  const store={rpc:async()=>"receipt",job:async()=>job,patch:async(_,data)=>patches.push(data),rest:async()=>{}};
  await researchStep(job,{env,fetcher:async()=>{paid++;throw new Error("timeout-with-private-details");},store});assert.equal(paid,1);assert.equal(patches[0].status,"unknown");assert.ok(!patches[0].error.includes("private-details"));
+});
+
+test("an empty extraction cannot overwrite a concurrent cancellation",async()=>{
+ const job={id:jobId,mode:"web",phase:"extract",work:{urls:[{url:"https://example.org/",title:"Page"}],extractIndex:0},status:"running"},writes=[];
+ const store={rpc:async()=>"receipt",sources:async()=>[],rest:async(path,method,body)=>{writes.push({path,body});},job:async()=>({...job,status:"cancelled"}),patch:async()=>{throw new Error("Must not overwrite cancellation");}};
+ await researchStep(job,{env,fetcher:async()=>json({results:[],failed_results:[{url:"https://example.org/"}],usage:{credits:0}}),store});
+ assert.equal(writes.length,2);assert.match(writes[1].path,/&status=eq.running$/);assert.equal(writes[1].body.status,"failed");
 });
 
 test("Deep Research plans separate searches, reads both batches and compares the shared evidence",async()=>{

@@ -164,9 +164,9 @@ test("multi-AI preserves paid replies in context when saving fails", async () =>
 });
 test("HTML loads gateway client before app and keeps credentials out of media forms", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  assert.ok(html.indexOf('src="genapi-client.js"') < html.indexOf('src="app.js"'));
-  assert.ok(html.indexOf('src="ai-workflows.js"') < html.indexOf('src="app.js"'));
-  assert.ok(html.indexOf('src="app.js"') < html.indexOf('src="genapi-media.js"'));
+  assert.ok(html.indexOf('src="genapi-client.js"') < html.indexOf('src="app.js'));
+  assert.ok(html.indexOf('src="ai-workflows.js"') < html.indexOf('src="app.js'));
+  assert.ok(html.indexOf('src="app.js') < html.indexOf('src="genapi-media.js"'));
   assert.equal((html.match(/data-media-model=/g) || []).length, 3);
   assert.ok(!html.includes('id="apiKey'));
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);

@@ -50,7 +50,7 @@ export async function researchStep(job,{env,fetcher=fetch,store=researchStore(en
    const complete=work.extractIndex>=work.urls.length;
    if(complete&&!previous.length&&!sources.length){
     await store.rest("research_calls?id=eq."+callId,"PATCH",{status:"succeeded",finished_at:new Date().toISOString(),actual:credits(data,1)});callId=null;
-    await store.patch(job.id,{status:"failed",work,error:"Не удалось прочитать страницы. Одних поисковых сниппетов недостаточно.",lease_until:null});return;
+    await store.rest("research_jobs?id=eq."+job.id+"&status=eq.running","PATCH",{status:"failed",work,error:"Не удалось прочитать страницы. Одних поисковых сниппетов недостаточно.",lease_until:null});return;
    }
    await finish(work,complete?(job.mode==="deep"?"analyse":"ready"):"extract","Прочитано источников: "+(previous.length+sources.length)+"; недоступно: "+work.failed.length+".",sources,null,credits(data,1));return;
   }

@@ -52,7 +52,7 @@ export function createTavily(key,fetcher=fetch) {
     return await boundedJson(response);
   }
   return {
-    search:async(query,deep=false)=>await call("search",{query:query.slice(0,500),search_depth:deep?"advanced":"basic",max_results:5,...(/сегодня|сейчас|последн|актуальн|today|latest|current/i.test(query)?{max_age_hours:24}:{}),include_published_date:true,include_answer:false,include_raw_content:false,include_images:false,auto_parameters:false}),
+    search:async(query,deep=false)=>await call("search",{query:query.slice(0,500),search_depth:deep?"advanced":"basic",max_results:5,include_published_date:true,include_answer:false,include_raw_content:false,include_images:false,auto_parameters:false}),
     extract:async(items)=>{if(!items.length||items.length>5)throw new Error("Допускается до пяти страниц на пакет.");return await call("extract",{urls:items.map(item=>publicUrl(item.url)),extract_depth:"basic",format:"text",include_images:false,timeout:15});},
   };
 }
