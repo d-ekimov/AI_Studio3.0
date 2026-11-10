@@ -16,7 +16,7 @@ test("research search adapter uses fixed API endpoints and never places keys in 
  const calls=[];const tavily=createTavily("fake-search-key",async(url,init)=>{calls.push({url,init});return json({results:[]});});
  await tavily.search("test",true);await tavily.extract([{url:"https://supabase.com/docs"}]);
  assert.equal(calls[0].url,"https://api.tavily.com/search");assert.equal(calls[1].url,"https://api.tavily.com/extract");
- assert.equal(JSON.parse(calls[0].init.body).auto_parameters,false);assert.equal(JSON.parse(calls[0].init.body).search_depth,"advanced");
+ assert.equal(JSON.parse(calls[0].init.body).auto_parameters,false);assert.equal(JSON.parse(calls[0].init.body).search_depth,"advanced");assert.equal(JSON.parse(calls[0].init.body).max_age_hours,undefined);
  for(const call of calls){assert.ok(!call.url.includes("fake-search-key"));assert.ok(!call.init.body.includes("fake-search-key"));assert.equal(call.init.redirect,"error");}
  await assert.rejects(()=>tavily.extract([{url:"https://localhost/"}]));
 });
