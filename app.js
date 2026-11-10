@@ -8,6 +8,10 @@
     SUPABASE_URL,
     SUPABASE_KEY
   );
+  window.aiStudioSupabase = supabase;
+  const genapi = window.AIStudioGenAPI.create(supabase);
+  const modelLabels = window.AIStudioGenAPI.names;
+  let chatSending = false;
   const pageNames = {chat:"Чат", compare:"Несколько ИИ", multi:"Мульти-ИИ", projects:"Проекты", tasks:"Задачи", models:"Модели"};
     const read = (key, fallback) => {
     try {
@@ -98,7 +102,7 @@ function renderSidebarProfile(user) {
   $("#menuToggle").addEventListener("click",()=>$("#sidebar").classList.toggle("sidebar-open"));
   document.addEventListener("click",e=>{if(window.innerWidth<=760 && $("#sidebar").classList.contains("sidebar-open") && !$("#sidebar").contains(e.target) && !$("#menuToggle").contains(e.target))$("#sidebar").classList.remove("sidebar-open");});
   const currentChat = () => chats.find(c=>c.id===activeChatId);
-    const modelName = () => ({chatgpt:"ChatGPT · Demo",deepseek:"DeepSeek · Demo",gemini:"Google Gemini · Demo",future:"Будущая модель · Demo"}[$("#modelSelect").value] || "ChatGPT · Demo");
+    const modelName = () => modelLabels[$("#modelSelect").value] || "Выбери модель";
     const renderHistory = () => {
     const list = $("#historyList");
     list.innerHTML = "";
@@ -115,6 +119,7 @@ function renderSidebarProfile(user) {
       $("em", openButton).textContent = c.title || "Новый чат";
 
       openButton.addEventListener("click", () => {
+        if (chatSending) { toast("Дождись ответа."); return; }
         activeChatId = c.id;
         renderChat();
         renderHistory();
@@ -129,6 +134,7 @@ function renderSidebarProfile(user) {
       deleteButton.setAttribute("aria-label", "Удалить чат");
 
       deleteButton.addEventListener("click", async () => {
+        if (multiSending || chatSending) { toast("Дождись завершения ответов."); return; }
         const confirmed = confirm(
           `Удалить чат «${c.title || "Новый чат"}»?\n\nЭто действие нельзя отменить.`
         );
@@ -187,7 +193,7 @@ content.textContent=m.content ?? m.text ?? "";
     box.scrollTop=box.scrollHeight;
   };
   const persistChats=()=>{renderHistory();};
-const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
+const newChat=()=>{if(chatSending){toast("Дождись ответа.");return;}activeChatId=null;renderChat();renderHistory();go("chat");$("#messageInput").focus();};
   $("#newChat").addEventListener("click",newChat);
   $("#modelSelect").addEventListener("change", () => {
   const val = $("#modelSelect").value;
@@ -215,112 +221,51 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
   toast("Выбрана модель: " + modelName());
 });
-  const demoAnswer=(prompt,model)=>{
-    const p=prompt.toLowerCase();
-    const intro=model==="deepseek"?"Давай разложим запрос по шагам.":"Хорошая отправная точка! Предлагаю двигаться постепенно.";
-    if(p.includes("сайт")||p.includes("сайта"))return intro+"\n\n1. Определим цель и аудиторию.\n2. Соберём структуру страниц и переходов.\n3. Подготовим адаптивный дизайн.\n4. Проверим все кнопки и состояния.\n5. После проверки подключим нужные сервисы.\n\nЭто демонстрационный ответ. После подключения API здесь будет отвечать выбранная модель.";
-    if(p.includes("задач")||p.includes("цель"))return intro+"\n\n• Сформулируй конечный результат.\n• Разбей его на небольшие шаги.\n• Выбери одну задачу на сегодня.\n• После выполнения проверь результат и обнови план.\n\nВ настоящем режиме мы сможем адаптировать план под твой проект.";
-    if(p.includes("текст")||p.includes("напис"))return intro+"\n\nСначала уточним, для кого текст и какого результата хотим добиться. Затем подготовим черновик, проверим тон и ясность, а в конце сделаем финальную редактуру.\n\nПришли тему и желаемый стиль — продолжим.";
-    if(p.includes("иде"))return intro+"\n\nМожно начать с трёх вариантов: простой продукт для быстрого запуска, инструмент для конкретной аудитории или сервис, который автоматизирует повторяющуюся задачу. Для выбора сравним пользу, сложность реализации и время на первый прототип.";
-    return intro+"\n\nЯ бы предложил сначала уточнить желаемый результат, затем выделить главные ограничения и составить короткий план. После этого можно переходить к конкретным действиям.\n\nНапоминание: сейчас это демонстрационный ответ, а не ответ настоящей языковой модели.";
-  };
   const sendMessage = async (text) => {
-  text = (text || "").trim();
-  if (!text) return;
-
-  if (!currentUser) {
-    toast("Войди в аккаунт, чтобы пользоваться чатами.");
-    window.location.href = "auth.html";
-    return;
-  }
-
-  const selected = $("#modelSelect").value;
-  let c = currentChat();
-
-  if (!c) {
-    const title = text.length > 34
-      ? text.slice(0, 34) + "…"
-      : text;
-
-    const { data, error } = await supabase
-      .from("ai_chats")
-      .insert({
-        user_id: currentUser.id,
-        title: title,
-        model: selected
-      })
-      .select()
-      .single();
-
-    if (error) {
-  console.error("Ошибка создания чата:", error);
-  toast("Ошибка: " + error.message);
-  return;
-    }
-
-    c = {
-      id: data.id,
-      title: data.title,
-      model: data.model,
-      messages: []
-    };
-
-    chats.unshift(c);
-    activeChatId = c.id;
-  }
-
-  const answer = demoAnswer(text, selected);
-
-  const { error: messageError } = await supabase
-    .from("ai_messages")
-    .insert([
-      {
-        chat_id: c.id,
-        role: "user",
-        content: text
-      },
-      {
-        chat_id: c.id,
-        role: "assistant",
-        content: answer
+    text = (text || "").trim();
+    if (!text || chatSending) return;
+    if (text.length > 12000) { toast("Сообщение слишком длинное: максимум 12000 символов."); return; }
+    if (!currentUser) { toast("Войди в аккаунт."); window.location.href = "auth.html"; return; }
+    const selected = $("#modelSelect").value;
+    const button = $("#chatForm button[type='submit']");
+    const input = $("#messageInput");
+    chatSending = true; button.disabled = true; input.disabled = true;
+    try {
+      let c = currentChat();
+      const context = [...(c?.messages || []), { role: "user", content: text }];
+      window.AIStudioGenAPI.context(context);
+      if (!c) {
+        const { data, error } = await supabase.from("ai_chats")
+          .insert({ user_id: currentUser.id, title: text.slice(0, 34), model: selected }).select().single();
+        if (error) throw new Error("Не удалось создать чат.");
+        c = { ...data, messages: [] }; chats.unshift(c); activeChatId = c.id; renderHistory();
       }
-    ]);
-
-  if (messageError) {
-    console.error("Ошибка сохранения сообщений:", messageError);
-    toast("Не удалось сохранить сообщения.");
-    return;
-  }
-
-  c.messages.push(
-    { role: "user", content: text },
-    { role: "assistant", content: answer, model: modelName() }
-  );
-
-  const { error: updateError } = await supabase
-    .from("ai_chats")
-    .update({
-      updated_at: new Date().toISOString(),
-      model: selected
-    })
-    .eq("id", c.id);
-
-  if (updateError) {
-    console.error("Ошибка обновления чата:", updateError);
-  }
-
-  persistChats();
-  renderChat();
-
-  $("#messageInput").value = "";
-  $("#messageInput").style.height = "auto";
-};
+      const reply = await genapi.chat(selected, context);
+      // Keep the paid answer visible even if saving the history fails.
+      c.messages.push({ role: "user", content: text }, { role: "assistant", content: reply.content, model: modelLabels[selected] });
+      if (activeChatId === c.id) renderChat();
+      input.value = ""; input.style.height = "auto";
+      const { error: messageError } = await supabase.from("ai_messages").insert([
+        { chat_id: c.id, role: "user", content: text },
+        { chat_id: c.id, role: "assistant", content: reply.content }
+      ]);
+      if (messageError) throw new Error("Ответ получен, но история не сохранена. Скопируй ответ; повторная отправка создаст новый платный запрос.");
+      c.model = selected;
+      const { error } = await supabase.from("ai_chats")
+        .update({ updated_at: new Date().toISOString(), model: selected })
+        .eq("id", c.id).eq("user_id", currentUser.id);
+      if (error) toast("Сообщения сохранены, но дата чата не обновлена.");
+      persistChats();
+    } catch (error) { toast(error.message || "Не удалось получить ответ GenAPI."); }
+    finally { chatSending = false; button.disabled = false; input.disabled = false; input.focus(); }
+  };
   $("#chatForm").addEventListener("submit",e=>{e.preventDefault();sendMessage($("#messageInput").value);});
   $("#messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage(e.target.value);}});
   $$(".suggestion").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));
   $("#attachButton").addEventListener("click",()=>toast("Загрузка файлов появится после следующего этапа разработки."));
   $("#clearHistory").addEventListener("click", () => {
   const clear = async () => {
+    if (chatSending) { toast("Дождись ответа."); return; }
     if (!currentUser) {
       toast("Сначала войди в аккаунт.");
       return;
@@ -362,18 +307,6 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     gemini: "Google Gemini"
   };
 
-  const compareReply = (p, model) => {
-    if (model === "chatgpt") {
-      return "Подход ChatGPT:\n\n1. Определить главную цель.\n2. Разбить задачу на понятные шаги.\n3. Предложить практическое решение.\n\nЗапрос: «" + p.slice(0, 100) + "»\n\nЭто демонстрационный ответ.";
-    }
-
-    if (model === "deepseek") {
-      return "Подход DeepSeek:\n\n1. Разобрать задачу и ограничения.\n2. Сравнить возможные решения.\n3. Выбрать наиболее эффективный вариант.\n\nЗапрос: «" + p.slice(0, 100) + "»\n\nЭто демонстрационный ответ.";
-    }
-
-    return "Подход Google Gemini:\n\n1. Рассмотреть задачу с разных сторон.\n2. Сформировать несколько идей.\n3. Выбрать наиболее перспективное решение.\n\nЗапрос: «" + p.slice(0, 100) + "»\n\nЭто демонстрационный ответ.";
-  };
-
   function updateCompareModel(slot) {
     const select = $("#compareModel" + slot);
     const icon = $("#compareIcon" + slot);
@@ -398,25 +331,20 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   $("#compareModel1").addEventListener("change", () => updateCompareModel(1));
   $("#compareModel2").addEventListener("change", () => updateCompareModel(2));
 
-  $("#compareRun").addEventListener("click", () => {
-    const p = $("#comparePrompt").value.trim();
-
-    if (!p) {
-      toast("Сначала напиши запрос для сравнения.");
-      $("#comparePrompt").focus();
-      return;
-    }
-
-    [1, 2].forEach(slot => {
+  $("#compareRun").addEventListener("click", async () => {
+    const prompt = $("#comparePrompt").value.trim();
+    const button = $("#compareRun");
+    if (!prompt) { toast("Сначала напиши запрос."); return; }
+    if (button.disabled) return;
+    button.disabled = true;
+    const jobs = [1, 2].map(async slot => {
       const model = $("#compareModel" + slot).value;
-      const card = $("#compareIcon" + slot).closest(".compare-card");
-      const answer = $(".compare-answer", card);
-
-      answer.classList.remove("muted-answer");
-      answer.textContent = compareReply(p, model);
+      const answer = $(".compare-answer", $("#compareIcon" + slot).closest(".compare-card"));
+      answer.classList.remove("muted-answer"); answer.textContent = "Ожидаем ответ…";
+      try { answer.textContent = (await genapi.chat(model, [{ role: "user", content: prompt }])).content; }
+      catch (error) { answer.textContent = error.message; }
     });
-
-    toast("Демонстрационные ответы готовы.");
+    try { await Promise.all(jobs); } finally { button.disabled = false; }
   });
   updateCompareModel(1);
   updateCompareModel(2);
@@ -425,32 +353,8 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
   let currentMultiChatId = null;
 
-  const multiModels = {
-    chatgpt: {
-      name: "ChatGPT",
-      reply: (prompt) =>
-        "Предлагаю начать со структуры задачи: определить цель, выделить основные требования и разбить решение на конкретные шаги.\n\nПо запросу: «" +
-        prompt.slice(0, 180) +
-        "»\n\nЭто демонстрационный ответ."
-    },
-    deepseek: {
-      name: "DeepSeek",
-      reply: (prompt) =>
-        "Я бы дополнительно проверил ограничения, возможные риски и эффективность каждого шага. Затем сравнил бы варианты и выбрал наиболее практичный.\n\nПо запросу: «" +
-        prompt.slice(0, 180) +
-        "»\n\nЭто демонстрационный ответ."
-    },
-    gemini: {
-      name: "Gemini",
-      reply: (prompt) =>
-        "Предлагаю рассмотреть задачу с другой стороны, найти альтернативные идеи и объединить наиболее сильные решения в один план.\n\nПо запросу: «" +
-        prompt.slice(0, 180) +
-        "»\n\nЭто демонстрационный ответ."
-    }
-  };
-
-  const multiDelay = (ms) =>
-    new Promise(resolve => setTimeout(resolve, ms));
+  const multiModels = Object.fromEntries(Object.entries(modelLabels).map(([key, name]) => [key, { name }]));
+  let multiSending = false;
 
   function addMultiMessage(speaker, content, role = "assistant") {
     const box = $("#multiMessages");
@@ -592,6 +496,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       deleteButton.setAttribute("aria-label", "Удалить диалог");
 
       deleteButton.addEventListener("click", async () => {
+        if (multiSending || chatSending) { toast("Дождись завершения ответов."); return; }
         const confirmed = confirm(
           `Удалить диалог «${chat.title || "Новый диалог"}»?\n\nЭто действие нельзя отменить.`
         );
@@ -636,6 +541,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
   // Открываем выбранный диалог
   async function openMultiChat(chatId) {
+    if (multiSending) { toast("Дождись завершения ответов."); return; }
     if (!currentUser) return;
 
     const { data: chat, error: chatError } = await supabase
@@ -727,6 +633,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   
   // Удаляем все диалоги Мульти-ИИ текущего пользователя
   $("#deleteAllMultiChatsBtn").addEventListener("click", async () => {
+    if (multiSending) { toast("Дождись завершения ответов."); return; }
     if (!currentUser) {
       toast("Сначала войди в аккаунт.");
       return;
@@ -767,6 +674,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   
   // Создаём новый пустой диалог
   $("#newMultiChatBtn").addEventListener("click", () => {
+    if (multiSending) { toast("Дождись завершения ответов."); return; }
     currentMultiChatId = null;
 
     const box = $("#multiMessages");
@@ -784,39 +692,34 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   });
 
   // Генерируем ответы и сохраняем каждый из них
-  async function runMultiDiscussion(prompt, models, sequential) {
-    const runModel = async (key, index) => {
-      if (sequential && index > 0) {
-        await multiDelay(700 * index);
-      }
-
+  async function runMultiDiscussion(chatId, models, sequential) {
+    const { data, error } = await supabase.from("multi_ai_messages")
+      .select("role, content, speaker, created_at").eq("chat_id", chatId)
+      .order("created_at", { ascending: false }).limit(36);
+    if (error) throw new Error("Не удалось загрузить контекст диалога.");
+    const context = (data || []).reverse().map(m => ({ role: m.role, content: m.role === "assistant" ? m.speaker + ": " + m.content : m.content }));
+    const runModel = async key => {
       const speaker = multiModels[key].name;
-      const answer = multiModels[key].reply(prompt);
-
-      await saveMultiMessage(
-        currentMultiChatId,
-        "assistant",
-        speaker,
-        answer,
-        key
-      );
-
-      addMultiMessage(speaker, answer);
+      const messages = [...context];
+      if (messages.at(-1)?.role !== "user") messages.push({ role: "user", content: "Дополни предыдущие ответы по последнему запросу пользователя." });
+      const answer = (await genapi.chat(key, messages)).content;
+      if (currentMultiChatId === chatId) addMultiMessage(speaker, answer);
+      try { await saveMultiMessage(chatId, "assistant", speaker, answer, key); }
+      catch { throw new Error("Ответ получен, но не сохранён. Скопируй его перед уходом со страницы."); }
+      return { role: "assistant", content: speaker + ": " + answer };
     };
-
     if (sequential) {
-      for (let i = 0; i < models.length; i++) {
-        await runModel(models[i], i);
-      }
+      for (const key of models) context.push(await runModel(key));
     } else {
-      await Promise.all(
-        models.map((key, index) => runModel(key, index))
-      );
+      const results = await Promise.allSettled(models.map(runModel));
+      const failure = results.find(r => r.status === "rejected");
+      if (failure) throw failure.reason;
     }
   }
 
   $("#multiChatForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (multiSending) return;
 
     const input = $("#multiMessageInput");
     const prompt = input.value.trim();
@@ -845,6 +748,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     const sendButton = $("#multiChatForm button[type='submit']");
     const sequential = $("#multiAutoMode").checked;
 
+    multiSending = true;
     input.disabled = true;
     sendButton.disabled = true;
 
@@ -856,9 +760,10 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
         await updateMultiChat(selectedModels, sequential);
       }
 
+      const operationChatId = currentMultiChatId;
       // Сохраняем сообщение пользователя
       await saveMultiMessage(
-        currentMultiChatId,
+        operationChatId,
         "user",
         "Ты",
         prompt
@@ -869,7 +774,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
 
       // Сохраняем ответы выбранных моделей
       await runMultiDiscussion(
-        prompt,
+        operationChatId,
         selectedModels,
         sequential
       );
@@ -877,8 +782,9 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       
     } catch (error) {
       console.error("Ошибка Мульти-ИИ:", error);
-      toast("Не удалось сохранить диалог. Проверь подключение к Supabase.");
+      toast(error.message || "Не удалось выполнить запрос Мульти-ИИ.");
     } finally {
+      multiSending = false;
       input.disabled = false;
       sendButton.disabled = false;
       input.focus();
@@ -1219,7 +1125,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
     }, 50);
   }
 
-  $$(".provider-detail").forEach(b=>b.addEventListener("click",()=>openDialog(b.dataset.provider,"Подключение пока не включено. Следующим этапом добавим сервер, безопасное хранение ключей и реальные ответы. API оплачивается отдельно от подписки на чат-сервис.","Понятно",()=>{})));
+  $$(".provider-detail").forEach(b=>b.addEventListener("click",()=>openDialog(b.dataset.provider,"Запросы выполняются через GenAPI. Доступ проверяется сервером; использование расходует баланс владельца GenAPI.","Понятно",()=>{})));
   $("#futureProvider").addEventListener("click",()=>toast("Новые провайдеры добавим отдельными модулями."));
   $("#themeToggle").addEventListener("click",()=>{document.body.classList.toggle("light-theme");save("aistudio_light",document.body.classList.contains("light-theme"));});
   if(read("aistudio_light",false))document.body.classList.add("light-theme");
@@ -1227,18 +1133,13 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
   $("#confirmClear").addEventListener("change",e=>save("aistudio_confirm_clear",e.target.checked));
   $("#compactToggle").checked=read("aistudio_compact",false);document.body.classList.toggle("compact-mode",$("#compactToggle").checked);
   $("#confirmClear").checked=read("aistudio_confirm_clear",true);
-  $("#helpButton").addEventListener("click",()=>openDialog("Как пользоваться AI Studio","Это первая версия интерфейса. Работают вкладки, демонстрационный чат, сравнение ответов, проекты, задачи, переключение темы и локальное сохранение. Настоящие ответы ИИ, файлы и синхронизация между устройствами будут добавлены позже.","Понятно",()=>{}));
+  $("#helpButton").addEventListener("click",()=>openDialog("Как пользоваться AI Studio","Чат, сравнение и Мульти-ИИ используют GenAPI после настройки серверной функции. История сохраняется в Supabase. Медиа-инструменты находятся в разделе моделей. Каждый запуск расходует средства GenAPI.","Понятно",()=>{}));
   $("#feedbackButton").addEventListener("click",()=>openDialog("Твоя заметка","Запиши идею или недостающую функцию — пока заметка никуда не отправляется.","Сохранить локально",()=>{
     const text=$("#fieldNote")?.value.trim();if(!text){toast("Напиши заметку.");return false;}const notes=read("aistudio_notes",[]);notes.push({text,date:new Date().toLocaleString("ru-RU")});save("aistudio_notes",notes);toast("Заметка сохранена в этом браузере.");return true;
   },[{id:"fieldNote",label:"Что стоит улучшить?",placeholder:"Хочу добавить…",multiline:true}]));
   $("#profileButton").addEventListener("click", () => {
-  const registered =
-    localStorage.getItem("aiStudioRegistered") === "true";
-
-  window.location.href = registered
-    ? "profile.html"
-    : "auth.html";
-});
+    window.location.href = currentUser ? "profile.html" : "auth.html";
+  });
   async function initChats() {
   try {
     const { data: sessionData, error: sessionError } =
@@ -1253,6 +1154,9 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
       return;
     }
 
+    const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError) throw assuranceError;
+    if (assurance.nextLevel === "aal2" && assurance.currentLevel !== "aal2") { window.location.href = "auth.html"; return; }
     currentUser = session.user;
     renderSidebarProfile(currentUser);
     await loadProjectsAndTasks();
@@ -1289,11 +1193,7 @@ const newChat=()=>{activeChatId=null;renderChat();renderHistory();go("chat");$("
         .map(message => ({
           role: message.role,
           content: message.content,
-          model: chat.model === "deepseek"
-            ? "DeepSeek · Demo"
-            : chat.model === "future"
-              ? "Будущая модель · Demo"
-              : "ChatGPT · Demo"
+          model: modelLabels[chat.model] || "Ранее сохранённый ответ"
         }))
     }));
 

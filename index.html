@@ -27,7 +27,7 @@
       <div class="side-label">ПОСЛЕДНИЕ ЧАТЫ <button id="clearHistory" title="Очистить историю">···</button></div>
       <div class="history-list" id="historyList"></div>
       <div class="sidebar-bottom">
-        <div class="usage-card"><div class="usage-top"><span class="usage-dot"></span><span>Режим прототипа</span></div><p>Ответы пока демонстрационные. API подключим позже.</p><button data-page="models">Настроить пространство <span>↗</span></button></div>
+        <div class="usage-card"><div class="usage-top"><span class="usage-dot"></span><span>GenAPI</span></div><p>Текст, изображения, видео и речь через единое подключение.</p><button data-page="models">Настроить пространство <span>↗</span></button></div>
         <button class="profile" id="profileButton"><div class="avatar">D</div><div class="profile-copy"><strong>Мой аккаунт</strong><small>Аккаунт AI Studio</small></div><span class="dots">···</span></button>
       </div>
     </aside>
@@ -35,12 +35,12 @@
       <header class="topbar">
         <button class="icon-btn mobile-menu" id="menuToggle" aria-label="Открыть меню">☰</button>
         <div class="breadcrumb"><span>Рабочее пространство</span><span class="crumb-slash">/</span><strong id="pageCrumb">Чат</strong></div>
-        <div class="top-actions"><button class="install-app-btn" id="installAppButton" type="button" hidden>↓ Установить</button><span class="status-pill"><i></i> Все системы готовы</span><button class="icon-btn" id="themeToggle" title="Переключить оформление">◐</button><button class="help-btn" id="helpButton">? <span>Помощь</span></button></div>
+        <div class="top-actions"><button class="install-app-btn" id="installAppButton" type="button" hidden>↓ Установить</button><span class="status-pill" id="genapiStatus"><i></i> Проверка подключения…</span><button class="icon-btn" id="themeToggle" title="Переключить оформление">◐</button><button class="help-btn" id="helpButton">? <span>Помощь</span></button></div>
       </header>
       <section class="page active-page" id="page-chat">
         <div class="chat-layout">
           <div class="chat-heading"><div><div class="eyebrow"><span class="spark">✦</span> ТВОЯ AI-МАСТЕРСКАЯ</div><h1>Привет! Что будем <span>создавать?</span></h1><p>Выбирай модель, задавай вопросы и собирай идеи в одном месте.</p></div><div class="heading-badge">✳ <span>AI Studio</span></div></div>
-          <div class="model-strip"><div class="model-select-wrap"><span class="provider-icon openai">✳</span><div class="model-info"><small>ОТВЕЧАЕТ</small><strong id="activeModelName">ChatGPT · Demo</strong></div><select id="modelSelect" aria-label="Выбрать модель"><option value="chatgpt">ChatGPT · Demo</option><option value="deepseek">DeepSeek · Demo</option><option value="gemini">Google Gemini · Demo</option><option value="future">Будущая модель · Demo</option></select><span class="chevron">⌄</span></div><span class="demo-note"><i></i> Демо-режим</span></div>
+          <div class="model-strip"><div class="model-select-wrap"><span class="provider-icon openai">✳</span><div class="model-info"><small>ОТВЕЧАЕТ</small><strong id="activeModelName">GPT-6 Sol</strong></div><select id="modelSelect" aria-label="Выбрать модель"><option value="chatgpt">GPT-6 Sol</option><option value="deepseek">DeepSeek V4.1 Flash</option><option value="gemini">Gemini 3.7 Flash</option></select><span class="chevron">⌄</span></div><span class="demo-note"><i></i> Через GenAPI</span></div>
           <div class="welcome-card" id="welcomeCard"><div class="welcome-orb">✳</div><div><h2>Начнём с идеи?</h2><p>Напиши сообщение или выбери подсказку ниже — покажем, как будет выглядеть работа с ИИ.</p></div></div>
           <div class="messages" id="messages" aria-live="polite"></div>
           <div class="suggestions" id="suggestions">
@@ -49,12 +49,12 @@
             <button class="suggestion" data-prompt="Помоги написать и улучшить текст"><span class="suggestion-icon orange">✎</span><span><strong>Написать текст</strong><small>Черновик и редактура</small></span><b>↗</b></button>
             <button class="suggestion" data-prompt="Разбей мою цель на понятные задачи"><span class="suggestion-icon green">☷</span><span><strong>Разобрать задачу</strong><small>Понятные следующие шаги</small></span><b>↗</b></button>
           </div>
-          <form class="composer" id="chatForm"><button type="button" class="attach-btn" id="attachButton" title="Файлы будут доступны позже">＋</button><textarea id="messageInput" rows="1" placeholder="Напиши сообщение… (Enter — отправить)" aria-label="Сообщение"></textarea><div class="composer-tools"><span>Демо-режим · ответы не генерируются настоящей моделью</span><button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button></div></form>
+          <form class="composer" id="chatForm"><button type="button" class="attach-btn" id="attachButton" title="Файлы будут доступны позже">＋</button><textarea id="messageInput" rows="1" placeholder="Напиши сообщение… (Enter — отправить)" aria-label="Сообщение"></textarea><div class="composer-tools"><span>Запрос расходует средства GenAPI</span><button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button></div></form>
           <div class="privacy-note"><span>♧</span> Твои чаты сохраняются в аккаунте и доступны после входа.</div>
         </div>
       </section>
       <section class="page" id="page-compare">
-        <div class="page-header"><div class="eyebrow">СРАВНЕНИЕ МОДЕЛЕЙ</div><h1>Несколько ИИ, <span>одна задача.</span></h1><p>Отправь один запрос нескольким моделям и сравни подходы. Сейчас здесь демонстрационные ответы.</p></div>
+        <div class="page-header"><div class="eyebrow">СРАВНЕНИЕ МОДЕЛЕЙ</div><h1>Несколько ИИ, <span>одна задача.</span></h1><p>Отправь один запрос нескольким моделям и сравни подходы. Каждая выбранная модель выполняет отдельный запрос GenAPI.</p></div>
         <div class="compare-input"><textarea id="comparePrompt" rows="2" placeholder="Например: придумай название для моего проекта…"></textarea><button class="primary-btn" id="compareRun">Сравнить ответы <span>↗</span></button></div>
         <div class="compare-grid" id="compareGrid">
           <article class="compare-card">
@@ -68,7 +68,7 @@
                   <option value="gemini">Google Gemini</option>
                 </select>
               </div>
-              <span class="demo-chip">DEMO</span>
+              <span class="demo-chip">GenAPI</span>
             </div>
             <div class="compare-answer muted-answer">Ответ появится после отправки запроса.</div>
           </article>
@@ -83,18 +83,18 @@
                   <option value="gemini">Google Gemini</option>
                 </select>
               </div>
-              <span class="demo-chip">DEMO</span>
+              <span class="demo-chip">GenAPI</span>
             </div>
             <div class="compare-answer muted-answer">Ответ появится после отправки запроса.</div>
           </article>
         </div>
-        <div class="info-banner"><span>✦</span><div><strong>Скоро — настоящая совместная работа</strong><p>После подключения API можно будет получать реальные ответы и передавать результат одной модели другой на проверку.</p></div></div>
+        <div class="info-banner"><span>✦</span><div><strong>Ответы выбранных моделей</strong><p>Сравнивай независимые ответы здесь или передавай ответы между моделями в последовательном режиме Мульти-ИИ.</p></div></div>
       </section>
       <section class="page" id="page-multi">
   <div class="page-header">
     <div class="eyebrow">ОБЩЕЕ ПРОСТРАНСТВО</div>
     <h1>Мульти-ИИ <span>в одной комнате.</span></h1>
-    <p>Общий диалог, в котором несколько ИИ смогут вместе работать над твоими задачами.</p>
+    <p>Общий диалог с несколькими моделями GenAPI и сохранением истории.</p>
   </div>
 
   <div class="multi-chat-panel">
@@ -104,7 +104,7 @@
         <strong>Общий диалог</strong>
         <small>Совместная работа нескольких ИИ</small>
       </div>
-      <span class="multi-status">DEMO</span>
+      <span class="multi-status">GenAPI</span>
     </div>
     <div class="multi-history">
         <div class="multi-history-header">
@@ -151,10 +151,10 @@
         <div class="multi-welcome-icon">✳</div>
         <h2>Соберём команду ИИ</h2>
         <p>
-          Здесь будет общий чат, где несколько ИИ смогут
+          Здесь несколько ИИ могут
           обсуждать задачи, предлагать идеи и дополнять ответы друг друга.
         </p>
-        <span>Участников можно будет добавлять прямо во время диалога.</span>
+        <span>Выбери модели перед отправкой запроса.</span>
       </div>
     </div>
 
@@ -167,7 +167,7 @@
         aria-label="Сообщение для общего чата"
       ></textarea>
       <div class="multi-composer-bottom">
-        <span>Демонстрационный режим · API пока не подключён</span>
+        <span>Каждый ответ модели — отдельный запрос GenAPI</span>
         <button class="send-btn" type="submit" aria-label="Отправить сообщение">↑</button>
       </div>
     </form>
@@ -177,7 +177,7 @@
     <span>✦</span>
     <div>
       <strong>Несколько мнений — одна общая задача</strong>
-      <p>Сначала создаём основу чата. Управление участниками и порядок общения добавим следующими этапами.</p>
+      <p>В последовательном режиме следующая модель получает предыдущие ответы. В параллельном режиме модели отвечают независимо.</p>
     </div>
   </div>
       </section>
@@ -196,30 +196,65 @@
         <div class="task-list" id="taskList"></div>
       </section>
       <section class="page" id="page-models">
-        <div class="page-header"><div class="eyebrow">ЕДИНОЕ ПОДКЛЮЧЕНИЕ</div><h1>Модели <span>и провайдеры.</span></h1><p>Настрой пространство для разных ИИ. Для настоящих подключений понадобится серверная часть.</p></div>
+        <div class="page-header"><div class="eyebrow">ЕДИНОЕ ПОДКЛЮЧЕНИЕ</div><h1>Модели <span>и провайдеры.</span></h1><p>Выбирай модели GenAPI. Доступ и секретный ключ проверяются серверной функцией Supabase.</p></div>
         <div class="provider-list">
-          <article class="provider-card"><div class="provider-icon openai">✳</div><div class="provider-main"><div class="provider-title"><h3>OpenAI / ChatGPT</h3><span class="state-label">Не подключено</span></div><p>Чат, генерация идей, помощь с кодом и текстами.</p><small>Подключение через API · ключ должен храниться на сервере</small></div><button class="outline-btn provider-detail" data-provider="OpenAI / ChatGPT">Подробнее</button></article>
-          <article class="provider-card"><div class="provider-icon deepseek">◈</div><div class="provider-main"><div class="provider-title"><h3>DeepSeek</h3><span class="state-label">Не подключено</span></div><p>Альтернативная модель для рассуждений и программирования.</p><small>Подключение через API · ключ должен храниться на сервере</small></div><button class="outline-btn provider-detail" data-provider="DeepSeek">Подробнее</button></article>
-          <article class="provider-card"><div class="provider-icon future-icon"><img src="./images/logos/gemini.png" alt="Google Gemini"></div><div class="provider-main"><div class="provider-title"><h3>Google Gemini</h3><span class="state-label">Не подключено</span></div><p>Универсальный ИИ от Google для текстов, анализа, идей и программирования.</p><small>Gemini API · ключ должен храниться на сервере</small></div><button class="outline-btn provider-detail" data-provider="Google Gemini">Подробнее</button></article>
+          <article class="provider-card"><div class="provider-icon openai">✳</div><div class="provider-main"><div class="provider-title"><h3>OpenAI / ChatGPT</h3><span class="state-label genapi-connect-state">Проверка сервера…</span></div><p>Чат, генерация идей, помощь с кодом и текстами.</p><small>Через GenAPI · ключ хранится в Supabase</small></div><button class="outline-btn provider-detail" data-provider="OpenAI / ChatGPT">Подробнее</button></article>
+          <article class="provider-card"><div class="provider-icon deepseek">◈</div><div class="provider-main"><div class="provider-title"><h3>DeepSeek</h3><span class="state-label genapi-connect-state">Проверка сервера…</span></div><p>Альтернативная модель для рассуждений и программирования.</p><small>Через GenAPI · ключ хранится в Supabase</small></div><button class="outline-btn provider-detail" data-provider="DeepSeek">Подробнее</button></article>
+          <article class="provider-card"><div class="provider-icon future-icon"><img src="./images/logos/gemini.png" alt="Google Gemini"></div><div class="provider-main"><div class="provider-title"><h3>Google Gemini</h3><span class="state-label genapi-connect-state">Проверка сервера…</span></div><p>Универсальный ИИ от Google для текстов, анализа, идей и программирования.</p><small>Через GenAPI · ключ хранится в Supabase</small></div><button class="outline-btn provider-detail" data-provider="Google Gemini">Подробнее</button></article>
           <article class="provider-card"><div class="provider-icon future-icon">✧</div><div class="provider-main"><div class="provider-title"><h3>Другие модели</h3><span class="state-label planned">В планах</span></div><p>Добавим новых провайдеров через отдельные адаптеры, не ломая интерфейс.</p><small>Архитектура расширяется по мере необходимости</small></div><button class="outline-btn" id="futureProvider">В планах</button></article>
         </div>
         <div class="media-tools-heading"><div class="eyebrow">ТВОРЧЕСКИЕ ИНСТРУМЕНТЫ</div><h2>Фото, видео <span>и аудио.</span></h2><p>Три дополнительных сервиса для творческих задач.</p></div>
         <div class="media-models" id="mediaModels">
-          <article class="media-model-card"><div class="media-model-art image-art">✦</div><h3>Stability AI — Фото</h3><p>Генерация изображений по текстовым описаниям и визуальным идеям.</p><small>Stability AI API</small><label class="api-key-label" for="apiKeyImage">API-ключ</label><input class="provider-key" id="apiKeyImage" type="password" autocomplete="off" placeholder="Ключ Stability AI"><div class="provider-actions"><button class="outline-btn key-toggle" data-target="apiKeyImage" type="button">Показать</button><button class="outline-btn key-check" data-target="apiKeyImage" type="button">Проверить</button></div><div class="connect-state">API не подключён</div></article>
-          <article class="media-model-card"><div class="media-model-art video-art">▶</div><h3>Runway — Видео</h3><p>Создание видеосцен и коротких роликов на основе текста или изображений.</p><small>Runway API</small><label class="api-key-label" for="apiKeyVideo">API-ключ</label><input class="provider-key" id="apiKeyVideo" type="password" autocomplete="off" placeholder="Ключ Runway"><div class="provider-actions"><button class="outline-btn key-toggle" data-target="apiKeyVideo" type="button">Показать</button><button class="outline-btn key-check" data-target="apiKeyVideo" type="button">Проверить</button></div><div class="connect-state">API не подключён</div></article>
-          <article class="media-model-card"><div class="media-model-art audio-art">♫</div><h3>ElevenLabs — Аудио</h3><p>Озвучивание текста, синтез речи и голосовые проекты.</p><small>ElevenLabs API</small><label class="api-key-label" for="apiKeyAudio">API-ключ</label><input class="provider-key" id="apiKeyAudio" type="password" autocomplete="off" placeholder="Ключ ElevenLabs"><div class="provider-actions"><button class="outline-btn key-toggle" data-target="apiKeyAudio" type="button">Показать</button><button class="outline-btn key-check" data-target="apiKeyAudio" type="button">Проверить</button></div><div class="connect-state">API не подключён</div></article>
+          <article class="media-model-card" data-media-model="image">
+            <div class="media-model-art image-art">✦</div><h3>Recraft V4.1 — Изображения</h3><p>Генерация изображения по текстовому описанию.</p><small>recraft-v4-1 · GenAPI</small>
+            <form class="media-generation-form">
+              <label for="mediaPrompt-image">Описание</label>
+              <textarea id="mediaPrompt-image" name="prompt" rows="4" maxlength="6000" required></textarea>
+
+              <button class="primary-btn" type="submit">Создать изображение</button>
+              <button class="outline-btn media-check" type="button" hidden>Проверить результат</button>
+            </form>
+            <div class="connect-state media-status" role="status" aria-live="polite">Запуск расходует средства GenAPI.</div>
+            <div class="media-result"></div>
+          </article>
+          <article class="media-model-card" data-media-model="video">
+            <div class="media-model-art video-art">▶</div><h3>Runway Gen 4 Aleph — Видео</h3><p>Редактирование исходного видео по текстовому описанию.</p><small>runway-gen-4-aleph · GenAPI</small>
+            <form class="media-generation-form">
+              <label for="mediaPrompt-video">Описание</label>
+              <textarea id="mediaPrompt-video" name="prompt" rows="4" maxlength="6000" required></textarea>
+              <label for="mediaVideoUrl">HTTPS-ссылка на исходное видео</label><input id="mediaVideoUrl" name="videoUrl" type="url" placeholder="https://…/video.mp4" required>
+              <button class="primary-btn" type="submit">Обработать видео</button>
+              <button class="outline-btn media-check" type="button" hidden>Проверить результат</button>
+            </form>
+            <div class="connect-state media-status" role="status" aria-live="polite">Запуск расходует средства GenAPI.</div>
+            <div class="media-result"></div>
+          </article>
+          <article class="media-model-card" data-media-model="audio">
+            <div class="media-model-art audio-art">♫</div><h3>Eleven v4 — Речь</h3><p>Озвучивание текста на русском языке голосом Alice.</p><small>eleven-v4 · GenAPI</small>
+            <form class="media-generation-form">
+              <label for="mediaPrompt-audio">Текст для озвучивания</label>
+              <textarea id="mediaPrompt-audio" name="prompt" rows="4" maxlength="3000" required></textarea>
+
+              <button class="primary-btn" type="submit">Озвучить</button>
+              <button class="outline-btn media-check" type="button" hidden>Проверить результат</button>
+            </form>
+            <div class="connect-state media-status" role="status" aria-live="polite">Запуск расходует средства GenAPI.</div>
+            <div class="media-result"></div>
+          </article>
         </div>
         <div class="install-banner"><div><strong>Установить AI Studio</strong><p>Добавь приложение на главный экран телефона или компьютера.</p></div><button class="install-app-btn" id="installInline" type="button">↓ Установить приложение</button></div>
-        <div class="security-note"><span>♧</span><div><strong>Безопасность прежде всего</strong><p>Поля ключей — только интерфейс. Не вводи настоящие секретные ключи на опубликованном сайте: для реального API требуется сервер.</p></div></div>
+        <div class="security-note"><span>♧</span><div><strong>Безопасность прежде всего</strong><p>Секретный ключ GenAPI хранится в Supabase и не передаётся браузеру. Каждый запуск расходует средства владельца GenAPI; доступ выдаётся отдельно.</p></div></div>
         <div class="settings-card"><div><h3>Настройки интерфейса</h3><p>Выбери удобный вид рабочего пространства.</p></div><label class="setting-row"><span><strong>Компактный режим</strong><small>Меньше отступов в списках и карточках</small></span><input type="checkbox" id="compactToggle"></label><label class="setting-row"><span><strong>Подтверждать очистку истории</strong><small>Показывать подтверждение перед удалением</small></span><input type="checkbox" id="confirmClear" checked></label></div>
       </section>
-      <footer class="app-footer"><span>✳ AI Studio</span><span>Прототип · версия 0.2</span><button id="feedbackButton">Оставить заметку ↗</button></footer>
+      <footer class="app-footer"><span>✳ AI Studio</span><span>GenAPI · тестовый доступ</span><button id="feedbackButton">Оставить заметку ↗</button></footer>
     </main>
   </div>
   <div class="toast" id="toast" role="status"></div>
   <dialog id="appDialog"><form method="dialog" class="dialog-form"><button class="dialog-close" aria-label="Закрыть">×</button><div class="eyebrow" id="dialogEyebrow">AI STUDIO</div><h2 id="dialogTitle">Заголовок</h2><p id="dialogText">Текст</p><div id="dialogFields"></div><div class="dialog-actions"><button class="outline-btn" value="cancel">Отмена</button><button class="primary-btn" id="dialogConfirm" value="default">Продолжить</button></div></form></dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="genapi-client.js"></script>
 <script src="app.js"></script>
+<script src="genapi-media.js"></script>
 <script src="enhancements.js"></script>
 </body>
 </html>

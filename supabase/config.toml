@@ -1,0 +1,6 @@
+project_id = "AI_Studio3.0"
+
+[functions.genapi]
+# Authentication is performed against Supabase Auth inside the function.
+# This also supports projects using the newer JWT signing keys.
+verify_jwt = false
