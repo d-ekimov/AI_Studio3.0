@@ -1,5 +1,6 @@
 /* Research UI and source rendering. Only session JWTs reach Supabase; provider keys stay server-side. */
 (() => {
+ const enabled=new URLSearchParams(window.location.search||"").get("research_preview")==="1";
  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const safeUrl=value=>{try{const u=new URL(value);return u.protocol==="https:"&&!u.username&&!u.password?u.href:null;}catch{return null;}};
  function create(supabase){
@@ -26,7 +27,7 @@
    container.appendChild(details);
   }
   function mount(form,prefix,kind){
-   const toolbar=document.createElement("div");toolbar.className="research-toolbar";
+   const toolbar=document.createElement("div");toolbar.className="research-toolbar";toolbar.hidden=!enabled;
    const label=document.createElement("label");label.textContent="Интернет ";const mode=document.createElement("select");mode.id=prefix+"ResearchMode";mode.setAttribute("aria-label","Интернет: "+(kind==="chat"?"чат":prefix==="compare"?"сравнение":"Мульти-ИИ"));
    for(const [value,text]of[["off","Выключен"],["web","Поиск"],["deep","Глубокое исследование"]]){const option=document.createElement("option");option.value=value;option.textContent=text;mode.appendChild(option);}label.appendChild(mode);
    const hint=document.createElement("small");hint.textContent="Поиск: до 2 кредитов · исследование: до 12. Ответы GenAPI оплачиваются отдельно.";

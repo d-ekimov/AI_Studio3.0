@@ -44,9 +44,14 @@ export async function researchStep(job,{env,fetcher=fetch,store=researchStore(en
    await begin("extract:"+index,1);
    const data=await tavily.extract(items),rows=extractedResults(data,items),previous=await store.sources(job.id);
    const sources=rows.map((row,i)=>({...row,label:"S"+(previous.length+i+1)}));
+   work.extract_diagnostics={returned:Array.isArray(data.results)?data.results.length:0,failed:Array.isArray(data.failed_results)?data.failed_results.length:0,requested:items.length,
+    fields:(Array.isArray(data.results)?data.results:[]).map(row=>({matched:items.some(item=>item.url===row.url),raw_type:typeof row.raw_content,raw_length:typeof row.raw_content==="string"?row.raw_content.length:0,content_type:typeof row.content,content_length:typeof row.content==="string"?row.content.length:0})).slice(0,5)};
    work.extractIndex=index+items.length;work.failed=[...(work.failed||[]),...items.filter(item=>!rows.some(row=>row.url===item.url)).map(item=>({url:item.url,title:item.title,status:"unavailable"}))];
    const complete=work.extractIndex>=work.urls.length;
-   if(complete&&!previous.length&&!sources.length)throw new Error("Не удалось прочитать страницы. Одних поисковых сниппетов недостаточно.");
+   if(complete&&!previous.length&&!sources.length){
+    await store.rest("research_calls?id=eq."+callId,"PATCH",{status:"succeeded",finished_at:new Date().toISOString(),actual:credits(data,1)});callId=null;
+    await store.patch(job.id,{status:"failed",work,error:"Не удалось прочитать страницы. Одних поисковых сниппетов недостаточно.",lease_until:null});return;
+   }
    await finish(work,complete?(job.mode==="deep"?"analyse":"ready"):"extract","Прочитано источников: "+(previous.length+sources.length)+"; недоступно: "+work.failed.length+".",sources,null,credits(data,1));return;
   }
   if(job.phase==="analyse"){
