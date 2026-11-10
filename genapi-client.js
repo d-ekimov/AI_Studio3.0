@@ -28,7 +28,7 @@
     }
     return {
       call,
-      async chat(model, messages) { return await call({ action: "chat", model, messages: context(messages) }); },
+      async chat(model, messages, options = {}) { return await call({ action: "chat", model, messages: context(messages), ...(options.researchId ? { researchId: options.researchId, answerRequestId: options.answerRequestId } : {}) }); },
     };
   }
   window.AIStudioGenAPI = { create, names, context };

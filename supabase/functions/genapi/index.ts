@@ -1,6 +1,9 @@
 // No provider SDK or privileged database client is needed by this gateway.
 // Kept in standard JavaScript syntax so its security paths can also run in Node tests.
 import { hydrateAttachments, CAPABILITIES } from "./attachments.mjs";
+import { authenticatedUser, AuthError } from "../_shared/auth.mjs";
+import { postGenapiChat } from "../_shared/genapi-transport.mjs";
+import { groundedChat } from "../_shared/grounded-chat.mjs";
 class GatewayError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -93,7 +96,7 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
   }
   async function provider(path, apiKey, body) {
     const isChat = path === "chat";
-    const response = await fetcher(isChat ? "https://proxy.gen-api.ru/v1/chat/completions" : `https://api.gen-api.ru/api/v1/${path}`, {
+    const response = isChat ? await postGenapiChat(apiKey, body, fetcher) : await fetcher(`https://api.gen-api.ru/api/v1/${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -132,26 +135,7 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
       if (origin && !origins.includes(origin)) throw new GatewayError(403, "Этот адрес сайта не разрешён.");
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
       if (request.method !== "POST") throw new GatewayError(405, "Используй POST.");
-      const authorization = request.headers.get("authorization") || "";
-      if (!/^Bearer [\w.-]+$/.test(authorization)) throw new GatewayError(401, "Войди в аккаунт AI Studio.");
-      const supabaseUrl = env("SUPABASE_URL");
-      const supabaseKey = env("SUPABASE_ANON_KEY");
-      if (!supabaseUrl || !supabaseKey) throw new GatewayError(503, "Не настроено окружение Supabase.");
-      // Do not trust a decoded JWT, a client user_id or the public application key.
-      const authResponse = await fetcher(`${supabaseUrl}/auth/v1/user`, {
-        headers: { authorization, apikey: supabaseKey }, signal: AbortSignal.timeout(10000), redirect: "error",
-      });
-      if (!authResponse.ok) throw new GatewayError(401, "Сессия истекла. Войди повторно.");
-      const user = await authResponse.json();
-      if (!user.id) throw new GatewayError(401, "Не удалось подтвердить пользователя.");
-      if (!csv(env("GENAPI_ALLOWED_USER_IDS")).includes(user.id)) {
-        throw new GatewayError(403, "Доступ к GenAPI ещё не включён для этого аккаунта.");
-      }
-      if ((user.factors || []).some(f => f.status === "verified")) {
-        let claims;
-        try { claims = JSON.parse(new TextDecoder().decode(unbase64url(authorization.slice(7).split(".")[1]))); } catch { throw new GatewayError(401, "Некорректная сессия."); }
-        if (claims.aal !== "aal2") throw new GatewayError(403, "Подтверди вход кодом двухфакторной защиты.");
-      }
+      const { user, authorization, supabaseUrl, supabaseKey } = await authenticatedUser(request, env, fetcher);
       const raw = await request.text();
       if (encoder.encode(raw).length > 128000) throw new GatewayError(413, "Слишком большой запрос.");
       let body;
@@ -192,6 +176,10 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
           throw new GatewayError(400, `Не удалось обработать вложения: ${String(error.message || "проверь формат и размер файлов").slice(0, 350)}`);
         }
       }
+      if (body.action === "chat" && body.researchId) {
+        try { return json(200, await groundedChat({ body, user, env, fetcher, messages: payload.messages, provider: value => provider("chat", apiKey, value) })); }
+        catch (error) { if (error instanceof GatewayError) throw error; throw new GatewayError(400, String(error.message || "Не удалось проверить поисковый ответ.").slice(0, 350)); }
+      }
       const result = await provider(body.action === "chat" ? "chat" : `networks/${slug}`, apiKey, payload);
       if (body.action === "chat") {
         const content = result.choices?.[0]?.message?.content;
@@ -203,7 +191,7 @@ export function createHandler({ env = name => Deno.env.get(name), fetcher = fetc
       if (!/^\d+$/.test(String(requestId))) throw new GatewayError(502, "GenAPI не вернул ID задачи. Проверь личный кабинет перед повторной отправкой.");
       return json(200, { requestId, ticket: await ticket(apiKey, user.id, requestId, body.model), model: body.model });
     } catch (error) {
-      if (error instanceof GatewayError) return json(error.status, { error: error.message });
+      if (error instanceof GatewayError || error instanceof AuthError) return json(error.status, { error: error.message });
       if (["TimeoutError", "AbortError"].includes(error?.name)) return json(504, { error: "Время ожидания истекло. Задача могла быть принята GenAPI; проверь кабинет перед повтором." });
       return json(502, { error: "Не удалось выполнить запрос. Проверь подключение и кабинет GenAPI перед повтором." });
     } finally {

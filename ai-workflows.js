@@ -23,7 +23,7 @@
       onState(model, "running");
       try {
         const reply = await generate(model, discussionMessages(snapshot, model, names, prompt, sequential));
-        const message = { role: "assistant", model_key: model, speaker: names[model], content: reply.content };
+        const message = { role: "assistant", model_key: model, speaker: names[model], content: reply.content, ...(reply.research_job_id ? {research_job_id:reply.research_job_id,citations:reply.citations||[]} : {}) };
         // Preserve generated content even when persistence fails. Never regenerate it automatically.
         let saved = true;
         try { await onResult(message); } catch { saved = false; }

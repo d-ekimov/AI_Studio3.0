@@ -4,3 +4,7 @@ project_id = "AI_Studio3.0"
 # Authentication is performed against Supabase Auth inside the function.
 # This also supports projects using the newer JWT signing keys.
 verify_jwt = false
+
+[functions.research]
+# User JWT is verified through the shared Auth guard. Scheduler can only tick queued jobs.
+verify_jwt = false
