@@ -98,4 +98,3 @@ test("a completed research answer is replayed from its receipt without another p
 test("another user's research cannot reach GenAPI",async()=>{
  let paid=0;await assert.rejects(()=>groundedChat({body:{model:"chatgpt",researchId:jobId,answerRequestId:userId},user:{id:userId},env,fetcher:async url=>{assert.ok(url.includes("&user_id=eq."+userId));return json([]);},provider:()=>{paid++;},messages:[]}),/недоступно/);assert.equal(paid,0);
 });
-
